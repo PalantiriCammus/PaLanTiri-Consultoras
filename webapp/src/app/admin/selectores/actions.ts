@@ -40,7 +40,11 @@ export async function guardarSelector(formData: FormData) {
   };
 
   if (id) {
-    const { error } = await supabase.from("selectores").update(data).eq("id", id);
+    const profileId = nullable(formData, "profile_id");
+    const { error } = await supabase
+      .from("selectores")
+      .update({ ...data, profile_id: profileId })
+      .eq("id", id);
     if (error) throw new Error(error.message);
   } else {
     const { error } = await supabase.from("selectores").insert(data);

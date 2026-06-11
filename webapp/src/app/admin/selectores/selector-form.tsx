@@ -20,6 +20,14 @@ type Selector = {
   cbu?: string;
   alias_cvu?: string;
   comision_porcentaje_defecto?: number;
+  profile_id?: string | null;
+};
+
+type Usuario = {
+  id: string;
+  nombre: string | null;
+  apellido: string | null;
+  email: string;
 };
 
 function Campo({
@@ -49,7 +57,7 @@ function Campo({
   );
 }
 
-export function SelectorForm({ selector }: { selector?: Selector }) {
+export function SelectorForm({ selector, usuarios = [] }: { selector?: Selector; usuarios?: Usuario[] }) {
   return (
     <form action={guardarSelector} className="space-y-8">
       {selector?.id && <input type="hidden" name="id" value={selector.id} />}
@@ -147,6 +155,32 @@ export function SelectorForm({ selector }: { selector?: Selector }) {
           </label>
         </div>
       </section>
+
+      {selector?.id && (
+        <section>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
+            Cuenta de acceso
+          </h2>
+          <label className="flex flex-col gap-1 text-sm sm:max-w-md">
+            <span className="font-medium text-slate-700">Usuario vinculado</span>
+            <select
+              name="profile_id"
+              defaultValue={selector?.profile_id ?? ""}
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            >
+              <option value="">Sin vincular</option>
+              {usuarios.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nombre} {u.apellido} ({u.email})
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="mt-2 text-xs text-slate-400">
+            Vinculá este selector con la cuenta de usuario que usará para acceder al portal.
+          </p>
+        </section>
+      )}
 
       <div className="flex gap-3 border-t border-slate-100 pt-6">
         <button

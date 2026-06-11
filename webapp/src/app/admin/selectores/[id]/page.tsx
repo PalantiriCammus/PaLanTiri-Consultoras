@@ -10,11 +10,14 @@ export default async function EditarSelectorPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: selector } = await supabase
-    .from("selectores")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const [{ data: selector }, { data: usuarios }] = await Promise.all([
+    supabase.from("selectores").select("*").eq("id", id).single(),
+    supabase
+      .from("profiles")
+      .select("id, nombre, apellido, email")
+      .eq("rol", "selector")
+      .order("nombre"),
+  ]);
 
   if (!selector) notFound();
 
@@ -26,7 +29,7 @@ export default async function EditarSelectorPage({
       </p>
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <SelectorForm selector={selector} />
+        <SelectorForm selector={selector} usuarios={usuarios ?? []} />
       </div>
     </div>
   );

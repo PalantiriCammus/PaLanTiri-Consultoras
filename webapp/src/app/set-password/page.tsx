@@ -2,55 +2,34 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Script from "next/script";
 import { createClient } from "@/lib/supabase/client";
 
-const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-
-declare global {
-  interface Window {
-    onTurnstileSuccess?: (token: string) => void;
-    onTurnstileExpired?: () => void;
-  }
-}
-
-export default function LoginPage() {
+export default function SetPasswordPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [confirmar, setConfirmar] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
-
-  if (typeof window !== "undefined") {
-    window.onTurnstileSuccess = (token: string) => setCaptchaToken(token);
-    window.onTurnstileExpired = () => setCaptchaToken(null);
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (TURNSTILE_SITE_KEY && !captchaToken) {
-      setError("Completá la verificación de seguridad");
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+    if (password !== confirmar) {
+      setError("Las contraseñas no coinciden");
       return;
     }
 
     setCargando(true);
-
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-      options: captchaToken ? { captchaToken } : undefined,
-    });
+    const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      setError(
-        error.message === "Invalid login credentials"
-          ? "Email o contraseña incorrectos"
-          : error.message
-      );
+      setError(error.message);
       setCargando(false);
       return;
     }
@@ -65,48 +44,28 @@ export default function LoginPage() {
         <div className="rounded-2xl bg-white p-8 shadow-2xl">
           <div className="mb-8 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-2xl text-white shadow-lg">
-              🎯
+              🔑
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              ATS Consultora
-            </h1>
+            <h1 className="text-2xl font-bold text-slate-900">Bienvenido/a</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Gestión de talento y reclutamiento
+              Definí tu contraseña para acceder a la plataforma.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
-                htmlFor="email"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                placeholder="tu@email.com"
-              />
-            </div>
-
-            <div>
-              <label
                 htmlFor="password"
                 className="mb-1.5 block text-sm font-medium text-slate-700"
               >
-                Contraseña
+                Nueva contraseña
               </label>
               <input
                 id="password"
                 type="password"
                 required
-                autoComplete="current-password"
+                minLength={6}
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
@@ -114,14 +73,25 @@ export default function LoginPage() {
               />
             </div>
 
-            {TURNSTILE_SITE_KEY && (
-              <div
-                className="cf-turnstile"
-                data-sitekey={TURNSTILE_SITE_KEY}
-                data-callback="onTurnstileSuccess"
-                data-expired-callback="onTurnstileExpired"
+            <div>
+              <label
+                htmlFor="confirmar"
+                className="mb-1.5 block text-sm font-medium text-slate-700"
+              >
+                Confirmar contraseña
+              </label>
+              <input
+                id="confirmar"
+                type="password"
+                required
+                minLength={6}
+                autoComplete="new-password"
+                value={confirmar}
+                onChange={(e) => setConfirmar(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                placeholder="••••••••"
               />
-            )}
+            </div>
 
             {error && (
               <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -134,19 +104,11 @@ export default function LoginPage() {
               disabled={cargando}
               className="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white shadow-md transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {cargando ? "Ingresando…" : "Ingresar"}
+              {cargando ? "Guardando…" : "Guardar contraseña"}
             </button>
           </form>
-
-          <p className="mt-6 text-center text-xs text-slate-400">
-            ¿No tenés acceso? Contactá al administrador de la consultora.
-          </p>
         </div>
       </div>
-
-      {TURNSTILE_SITE_KEY && (
-        <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
-      )}
     </main>
   );
 }

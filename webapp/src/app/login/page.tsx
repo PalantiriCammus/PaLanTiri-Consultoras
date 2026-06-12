@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Script from "next/script";
 import { createClient } from "@/lib/supabase/client";
 
@@ -64,11 +65,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="rounded-2xl bg-white p-8 shadow-2xl">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-2xl text-white shadow-lg">
-              🎯
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg">
+              <Image src="/logo-palantiri-icon.png" alt="Palantiri" width={56} height={56} className="object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">
-              ATS Consultora
+              Palantiri Consultoras
             </h1>
             <p className="mt-1 text-sm text-slate-500">
               Gestión de talento y reclutamiento

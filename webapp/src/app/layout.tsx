@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ATS Consultora",
+  title: "Palantiri Consultoras",
   description: "Plataforma de gestión de talento y reclutamiento",
 };
 

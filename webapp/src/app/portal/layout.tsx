@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { esStaff, ROL_LABELS } from "@/lib/types";
@@ -27,14 +28,14 @@ export default async function PortalLayout({
     <div className="flex min-h-screen">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white p-4 md:flex">
         <div className="mb-6 flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-lg text-white">
-            🎯
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white">
+            <Image src="/logo-palantiri-icon.png" alt="Palantiri" width={40} height={40} className="object-contain" />
           </div>
           <div>
             <p className="font-bold leading-tight text-slate-900">
               Portal Selector
             </p>
-            <p className="text-xs text-slate-500">ATS Consultora</p>
+            <p className="text-xs text-slate-500">Palantiri Consultoras</p>
           </div>
         </div>
 

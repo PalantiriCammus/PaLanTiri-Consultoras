@@ -1,0 +1,32 @@
+# Anti-pausa: Supabase free pausa los proyectos tras 7 días sin actividad.
+# Este ping consulta /api/health (que lee la base) dos veces por día, así
+# ninguna instancia se duerme. Si una instancia no responde OK, el job
+# falla y GitHub te avisa por email.
+#
+# Para sumar una consultora nueva: agregar una entrada en "matrix.instancia".
+
+name: Ping instancias (anti-pausa)
+
+on:
+  schedule:
+    - cron: "0 8,20 * * *" # 05:00 y 17:00 hora Argentina
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        instancia:
+          - nombre: palantiri
+            url: https://pa-lan-tiri-consultoras.vercel.app
+    steps:
+      - name: Ping /api/health de ${{ matrix.instancia.nombre }}
+        run: |
+          respuesta=$(curl -sS --max-time 30 "${{ matrix.instancia.url }}/api/health")
+          echo "$respuesta"
+          echo "$respuesta" | grep -q '"status":"ok"' || {
+            echo "::error::La instancia ${{ matrix.instancia.nombre }} no respondió OK"
+            exit 1
+          }

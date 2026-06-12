@@ -152,9 +152,16 @@ export default async function ConsolaPage() {
       </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-400">
           Registrar consultora
         </h2>
+        <p className="mb-4 text-xs text-slate-400">
+          Esta consola solo <strong>monitorea</strong> instancias que ya están desplegadas: la URL es
+          la dirección donde vive la app de esa consultora (su dominio de Vercel, ej.{" "}
+          <code className="rounded bg-slate-100 px-1">https://consultora-x.vercel.app</code>). Para
+          desplegar una consultora nueva, seguí la guía ALTA-CONSULTORA.md del repositorio y después
+          registrala acá.
+        </p>
         <form action={agregarInstancia} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-700">Nombre</span>

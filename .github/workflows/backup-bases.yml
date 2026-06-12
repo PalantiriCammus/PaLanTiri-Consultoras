@@ -1,0 +1,65 @@
+# Backup nocturno de la base de cada instancia (Supabase free no incluye
+# backups automáticos). El dump se cifra con AES-256 y se guarda como
+# artefacto del workflow por 30 días.
+#
+# Secrets requeridos (Settings → Secrets and variables → Actions):
+#   BACKUP_PASSPHRASE            → frase de cifrado (una sola para todos)
+#   SUPABASE_DB_URL_PALANTIRI    → connection string "Session pooler" de Supabase
+#                                  (Dashboard → Connect → Session pooler URI, con password)
+#
+# Para sumar una consultora nueva: agregar entrada en "matrix.instancia"
+# y crear su secret SUPABASE_DB_URL_<NOMBRE>.
+#
+# Para restaurar un backup descargado:
+#   gpg -d backup-xxx.sql.gz.gpg | gunzip | psql "<connection-string-destino>"
+
+name: Backup nocturno de bases
+
+on:
+  schedule:
+    - cron: "30 5 * * *" # 02:30 hora Argentina
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        instancia:
+          - nombre: palantiri
+            secreto: SUPABASE_DB_URL_PALANTIRI
+    steps:
+      - name: Instalar cliente PostgreSQL 17
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Dump cifrado de ${{ matrix.instancia.nombre }}
+        env:
+          DB_URL: ${{ secrets[matrix.instancia.secreto] }}
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::error::Falta el secret ${{ matrix.instancia.secreto }}"
+            exit 1
+          fi
+          if [ -z "$PASSPHRASE" ]; then
+            echo "::error::Falta el secret BACKUP_PASSPHRASE"
+            exit 1
+          fi
+          fecha=$(date +%Y-%m-%d)
+          archivo="backup-${{ matrix.instancia.nombre }}-$fecha.sql.gz.gpg"
+          pg_dump "$DB_URL" --no-owner --no-privileges \
+            | gzip \
+            | gpg --symmetric --cipher-algo AES256 --batch --passphrase "$PASSPHRASE" -o "$archivo"
+          ls -lh "$archivo"
+
+      - name: Guardar artefacto (30 días)
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ matrix.instancia.nombre }}-${{ github.run_id }}
+          path: backup-*.sql.gz.gpg
+          retention-days: 30

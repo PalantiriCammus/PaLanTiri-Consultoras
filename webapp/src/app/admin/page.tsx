@@ -28,6 +28,8 @@ export default async function AdminDashboard() {
   const supabase = await createClient();
   const head = { count: "exact" as const, head: true };
 
+  const en15Dias = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10);
+
   const [
     empresas,
     busquedas,
@@ -35,6 +37,7 @@ export default async function AdminDashboard() {
     postulantes,
     postActivas,
     garantias,
+    { data: garantiasPorVencer },
   ] = await Promise.all([
     supabase.from("empresas").select("*", head).eq("activa", true),
     supabase.from("perfiles_busqueda").select("*", head).is("fecha_cierre", null),
@@ -54,6 +57,15 @@ export default async function AdminDashboard() {
       .from("seguimiento_garantia")
       .select("*", head)
       .eq("estado", "vigente"),
+    supabase
+      .from("seguimiento_garantia")
+      .select(
+        "id, fecha_vencimiento, postulaciones(postulantes(nombre, apellido), perfiles_busqueda(titulo_puesto, empresas(nombre)))"
+      )
+      .eq("estado", "vigente")
+      .not("fecha_vencimiento", "is", null)
+      .lte("fecha_vencimiento", en15Dias)
+      .order("fecha_vencimiento"),
   ]);
 
   return (
@@ -62,6 +74,49 @@ export default async function AdminDashboard() {
       <p className="mt-1 text-slate-500">
         Resumen general de la operación de la consultora.
       </p>
+
+      {(garantiasPorVencer ?? []).length > 0 && (
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <p className="font-semibold text-amber-900">
+            ⏳ Garantías que vencen en los próximos 15 días
+          </p>
+          <ul className="mt-2 space-y-1 text-sm text-amber-800">
+            {(garantiasPorVencer ?? []).map((g) => {
+              const post = g.postulaciones as unknown as {
+                postulantes: { nombre: string; apellido: string } | null;
+                perfiles_busqueda: {
+                  titulo_puesto: string;
+                  empresas: { nombre: string } | null;
+                } | null;
+              } | null;
+              const dias = Math.max(
+                0,
+                Math.ceil(
+                  (new Date(g.fecha_vencimiento!).getTime() - Date.now()) / 86400000
+                )
+              );
+              return (
+                <li key={g.id}>
+                  <span className="font-medium">
+                    {post?.postulantes?.nombre} {post?.postulantes?.apellido}
+                  </span>{" "}
+                  — {post?.perfiles_busqueda?.titulo_puesto}
+                  {post?.perfiles_busqueda?.empresas &&
+                    ` (${post.perfiles_busqueda.empresas.nombre})`}{" "}
+                  · vence el {g.fecha_vencimiento}{" "}
+                  {dias === 0 ? "(¡hoy!)" : `(en ${dias} día${dias === 1 ? "" : "s"})`}
+                </li>
+              );
+            })}
+          </ul>
+          <a
+            href="/admin/garantias"
+            className="mt-3 inline-block text-sm font-semibold text-amber-900 underline"
+          >
+            Ir a Garantías →
+          </a>
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Tarjeta

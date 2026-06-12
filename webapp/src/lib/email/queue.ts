@@ -14,7 +14,7 @@ function renderPlantilla(plantilla: string, variables: Record<string, string>) {
 
 // Normaliza un teléfono argentino al formato que espera WhatsApp Web
 // (solo dígitos con código de país y 9 para móviles: 549XXXXXXXXXX).
-function normalizarTelefono(telefono: string): string | null {
+export function normalizarTelefono(telefono: string): string | null {
   let digitos = telefono.replace(/\D/g, "");
   if (!digitos) return null;
   if (digitos.startsWith("0")) digitos = digitos.slice(1);

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { desconectarGoogle } from "@/lib/google/oauth";
 import { subirFlyer } from "@/lib/storage/flyer";
+import { normalizarTelefono } from "@/lib/email/queue";
 
 function val(formData: FormData, key: string): string {
   return (formData.get(key) as string | null)?.trim() ?? "";
@@ -44,6 +45,36 @@ export async function guardarIdentidad(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/", "layout");
+}
+
+// Encola un WhatsApp de prueba para verificar el circuito completo
+// (cola → worker local → teléfono).
+export async function enviarWhatsappPrueba(formData: FormData) {
+  const supabase = await createClient();
+
+  const numero = normalizarTelefono(val(formData, "telefono"));
+  if (!numero) throw new Error("El teléfono no parece válido.");
+
+  const { error } = await supabase.from("whatsapp_messages").insert({
+    numero_destino: numero,
+    mensaje: val(formData, "mensaje") || "Mensaje de prueba de la plataforma ✅",
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/configuracion");
+}
+
+// Vuelve a poner en cola un mensaje que falló, para que el worker lo reintente.
+export async function reintentarWhatsapp(formData: FormData) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("whatsapp_messages")
+    .update({ estado: "pendiente", error_log: null })
+    .eq("id", val(formData, "id"));
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/configuracion");
 }
 
 export async function desconectarGoogleAction() {

@@ -6,7 +6,9 @@ import {
   actualizarEstadoBusqueda,
   actualizarEstadoPostulante,
   desconectarGoogleAction,
+  enviarWhatsappPrueba,
   guardarIdentidad,
+  reintentarWhatsapp,
 } from "./actions";
 
 export default async function ConfiguracionPage({
@@ -42,6 +44,14 @@ export default async function ConfiguracionPage({
     .limit(20);
 
   const consultora = await getConsultora();
+
+  // Si hay mensajes pendientes hace más de 15 minutos, el worker
+  // probablemente no está corriendo.
+  const pendienteViejo = (whatsapps ?? []).find(
+    (w) =>
+      w.estado === "pendiente" &&
+      Date.now() - new Date(w.fecha_creacion).getTime() > 15 * 60 * 1000
+  );
 
   const ESTADO_EMAIL_COLOR: Record<string, string> = {
     enviado: "bg-emerald-100 text-emerald-700",
@@ -372,8 +382,47 @@ export default async function ConfiguracionPage({
         </h2>
         <p className="mb-4 text-xs text-slate-400">
           Los mensajes &quot;pendiente&quot; se envían cuando el worker de WhatsApp está corriendo en
-          la PC de la consultora.
+          la PC de la consultora (doble click en <code>worker\iniciar-whatsapp.bat</code>).
         </p>
+
+        {pendienteViejo && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            ⚠️ Hay mensajes pendientes desde hace más de 15 minutos: el worker de WhatsApp parece
+            estar apagado. Iniciálo con <code>worker\iniciar-whatsapp.bat</code> y se enviarán solos.
+          </div>
+        )}
+
+        <form
+          action={enviarWhatsappPrueba}
+          className="mb-5 flex flex-wrap items-end gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4"
+        >
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-slate-700">Teléfono de prueba</span>
+            <input
+              type="text"
+              name="telefono"
+              required
+              placeholder="11 5555-1234"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+          </label>
+          <label className="flex min-w-60 flex-1 flex-col gap-1 text-sm">
+            <span className="font-medium text-slate-700">Mensaje</span>
+            <input
+              type="text"
+              name="mensaje"
+              placeholder="Mensaje de prueba de la plataforma ✅"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+          </label>
+          <button
+            type="submit"
+            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+          >
+            Encolar WhatsApp de prueba
+          </button>
+        </form>
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50">
@@ -395,12 +444,25 @@ export default async function ConfiguracionPage({
                     {w.mensaje}
                   </td>
                   <td className="px-3 py-2">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${ESTADO_EMAIL_COLOR[w.estado] ?? ""}`}
-                      title={w.error_log ?? ""}
-                    >
-                      {w.estado}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${ESTADO_EMAIL_COLOR[w.estado] ?? ""}`}
+                        title={w.error_log ?? ""}
+                      >
+                        {w.estado}
+                      </span>
+                      {w.estado === "error" && (
+                        <form action={reintentarWhatsapp}>
+                          <input type="hidden" name="id" value={w.id} />
+                          <button
+                            type="submit"
+                            className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+                          >
+                            Reintentar
+                          </button>
+                        </form>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

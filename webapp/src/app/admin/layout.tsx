@@ -26,6 +26,7 @@ const NAV_ADMIN: NavItem[] = [
 
 const NAV_SUPER: NavItem[] = [
   { href: "/admin/usuarios", label: "Usuarios", icon: "🔐" },
+  { href: "/admin/consola", label: "Consola Palantiri", icon: "🛰️" },
 ];
 
 export default async function AdminLayout({

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { urlFirmadaCv } from "@/lib/storage/cv";
+import { urlVerCv } from "@/lib/storage/cv";
 import { presentarABusqueda } from "./actions";
 
 type Filtros = {
@@ -85,7 +85,7 @@ export default async function TalentosPage({
     ]);
 
   const cvUrls = await Promise.all(
-    (postulantes ?? []).map((p) => (p.cv_path ? urlFirmadaCv(p.cv_path, 1800) : Promise.resolve(null)))
+    (postulantes ?? []).map((p) => (p.cv_path ? urlVerCv(p.cv_path, 1800) : Promise.resolve(null)))
   );
 
   // Para que las acciones vuelvan a esta misma vista con los filtros aplicados

@@ -155,7 +155,10 @@ export default async function ConfiguracionPage({
               <p className="text-sm font-medium text-emerald-700">🟢 Cuenta de Google conectada</p>
               <p className="mt-1 text-xs text-slate-500">
                 Al agendar una entrevista se crea el evento en Calendar con sala de Meet y se invita
-                por email al candidato y al entrevistador.
+                por email al candidato y al entrevistador. Los CVs nuevos se guardan en el Drive de
+                esta cuenta (carpeta &quot;CVs - Plataforma Palantiri&quot;). Si conectaste antes de
+                que existiera esta función, desconectá y volvé a conectar para otorgar el permiso de
+                Drive.
               </p>
             </div>
             <form action={desconectarGoogleAction}>
@@ -173,7 +176,7 @@ export default async function ConfiguracionPage({
               <p className="text-sm font-medium text-slate-700">⚪ Sin conectar</p>
               <p className="mt-1 text-xs text-slate-500">
                 Conectá la cuenta de Google de la consultora para crear eventos de Calendar con
-                Google Meet automáticamente al agendar entrevistas.
+                Google Meet al agendar entrevistas y guardar los CVs en su Drive (15 GB gratis).
               </p>
             </div>
             {googleConfigurado() ? (

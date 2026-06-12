@@ -4,7 +4,13 @@ const CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "";
 
-const SCOPES = ["https://www.googleapis.com/auth/calendar.events"];
+// calendar.events: eventos de entrevistas con Meet.
+// drive.file: subir CVs al Drive de la consultora (solo archivos creados
+// por esta app, no da acceso al resto del Drive).
+const SCOPES = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/drive.file",
+];
 
 type TokenGuardado = {
   access_token: string;

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { urlFirmadaCv } from "@/lib/storage/cv";
+import { urlVerCv } from "@/lib/storage/cv";
 import { guardarPostulante } from "./actions";
 
 type Postulante = {
@@ -66,7 +66,7 @@ export async function PostulanteForm({ postulante }: { postulante?: Postulante }
   const [{ data: estados }, { data: selectores }, cvUrl] = await Promise.all([
     supabase.from("estados_postulante").select("id, nombre").order("orden"),
     supabase.from("selectores").select("id, nombre, apellido").eq("estado", "activo").order("nombre"),
-    postulante?.cv_path ? urlFirmadaCv(postulante.cv_path) : Promise.resolve(null),
+    postulante?.cv_path ? urlVerCv(postulante.cv_path) : Promise.resolve(null),
   ]);
 
   return (

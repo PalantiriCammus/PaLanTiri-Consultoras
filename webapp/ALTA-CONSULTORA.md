@@ -27,6 +27,13 @@ se actualizan automáticamente con cada push a `main`).
 
 ## 2. Vercel (la web del cliente)
 
+> ⚡ **Atajo automatizado:** en vez de hacer esto a mano, podés correr
+> `node webapp/scripts/crear-instancia.mjs` — crea el proyecto, carga las 9 env
+> vars y dispara el deploy de una. Necesitás un token de Vercel
+> (https://vercel.com/account/tokens) en `VERCEL_TOKEN` y completar
+> `webapp/scripts/nueva-instancia.local.json` (copiá el `.example`). Ver detalle
+> al final de este documento. El paso manual de abajo queda como alternativa.
+
 1. [vercel.com](https://vercel.com) → **Add New → Project** → importar el repo
    `PaLanTiri-Consultoras` (el mismo de siempre).
    - **Root Directory: `webapp`** · Framework: Next.js.

@@ -1,0 +1,25 @@
+{
+  "_ayuda": "Copiá este archivo a 'nueva-instancia.local.json' (queda fuera de git) y completá los valores. El token de Vercel mejor por variable de entorno VERCEL_TOKEN.",
+
+  "vercelToken": "",
+  "teamId": null,
+  "repo": "manuelcammus/PaLanTiri-Consultoras",
+
+  "compartidas": {
+    "_ayuda": "Mismos valores para TODAS las consultoras.",
+    "GOOGLE_CLIENT_ID": "189540329994-3nce7mj5ukskg0v8vcagc2recj1nn82q.apps.googleusercontent.com",
+    "GOOGLE_CLIENT_SECRET": "GOCSPX-...",
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x...",
+    "RESEND_API_KEY": "re_..."
+  },
+
+  "consultora": {
+    "_ayuda": "Datos propios de esta consultora. Las 3 claves de Supabase salen de SU base (Settings -> API).",
+    "nombre": "consultora-ejemplo",
+    "supabaseUrl": "https://xxxxx.supabase.co",
+    "anonKey": "",
+    "serviceRoleKey": "",
+    "emailFrom": "Consultora Ejemplo <onboarding@resend.dev>",
+    "siteUrl": ""
+  }
+}

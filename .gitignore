@@ -2,6 +2,7 @@
 .env
 .env.*
 *.local.md
+*.local.json
 *client_secret*.json
 client_secret*.json
 

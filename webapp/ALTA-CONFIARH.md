@@ -95,10 +95,10 @@ Configuración elegida:
 
 ## Paso 6 — Google Calendar/Meet (opcional, para después)
 
-1. Google Cloud de Palantiri → APIs y servicios → Credenciales → cliente OAuth
-   `palantiri-webapp` → **+ Agregar URI de redireccionamiento**:
-   `https://(URL .vercel.app)/api/google/callback`
-2. Dentro de la app: Configuración → Integración con Google → Conectar.
+✅ Con el *callback único* **no hay que registrar nada en Google Cloud**. Solo:
+
+1. Dentro de la app: Configuración → Integración con Google → Conectar.
+   (Usa el callback central de la madre, que ya está registrado.)
 
 ## Paso 7 — Configuración dentro de la app
 

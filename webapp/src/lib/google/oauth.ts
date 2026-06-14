@@ -1,8 +1,22 @@
+import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+// Callback ÚNICO/central: la única URL de redirección registrada en Google.
+// TODAS las instancias (madre y consultoras) usan esta misma URL, así no hay
+// que registrar una por consultora. El callback central reenvía el código a
+// la instancia que inició el flujo (firmada en el state). Se puede sobreescribir
+// por env var; por defecto apunta a la instancia madre.
+const CALLBACK_URL =
+  process.env.GOOGLE_CALLBACK_URL ??
+  "https://pa-lan-tiri-consultoras.vercel.app/api/google/callback";
+
+// Secreto para firmar el state (HMAC). Reutiliza el client secret de Google,
+// que ya está presente en todas las instancias.
+const STATE_SECRET = process.env.GOOGLE_STATE_SECRET || CLIENT_SECRET || "palantiri";
 
 // calendar.events: eventos de entrevistas con Meet.
 // drive.file: subir CVs al Drive de la consultora (solo archivos creados
@@ -24,12 +38,13 @@ export function googleConfigurado(): boolean {
 }
 
 export function redirectUri(): string {
-  return `${SITE_URL}/api/google/callback`;
+  return CALLBACK_URL;
 }
 
 // URL de consentimiento de Google. access_type=offline + prompt=consent
 // garantizan recibir un refresh_token para operar sin usuario presente.
-export function urlAutorizacion(): string {
+// El state lleva firmado el origen de la instancia que inicia el flujo.
+export function urlAutorizacion(state: string): string {
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     redirect_uri: redirectUri(),
@@ -37,8 +52,41 @@ export function urlAutorizacion(): string {
     scope: SCOPES.join(" "),
     access_type: "offline",
     prompt: "consent",
+    state,
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+}
+
+// --- State firmado (HMAC) para el callback único ---------------------------
+// El state viaja a Google y vuelve. Lo firmamos para que el callback central
+// solo reenvíe a orígenes que nosotros generamos (evita open-redirect) y para
+// que la instancia destino confíe en el origen.
+
+function b64url(s: string): string {
+  return Buffer.from(s).toString("base64url");
+}
+
+export function firmarState(payload: { origin: string; nonce: string }): string {
+  const body = b64url(JSON.stringify({ ...payload, ts: Date.now() }));
+  const sig = crypto.createHmac("sha256", STATE_SECRET).update(body).digest("base64url");
+  return `${body}.${sig}`;
+}
+
+export function verificarState(state: string): { origin: string; nonce: string } | null {
+  const [body, sig] = state.split(".");
+  if (!body || !sig) return null;
+  const esperado = crypto.createHmac("sha256", STATE_SECRET).update(body).digest("base64url");
+  const a = Buffer.from(sig);
+  const b = Buffer.from(esperado);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const data = JSON.parse(Buffer.from(body, "base64url").toString());
+    if (typeof data.origin !== "string" || typeof data.nonce !== "string") return null;
+    if (typeof data.ts !== "number" || Date.now() - data.ts > 10 * 60_000) return null;
+    return { origin: data.origin, nonce: data.nonce };
+  } catch {
+    return null;
+  }
 }
 
 export async function intercambiarCodigo(code: string): Promise<TokenGuardado> {

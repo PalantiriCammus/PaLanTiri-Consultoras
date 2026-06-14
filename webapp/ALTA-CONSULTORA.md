@@ -61,11 +61,17 @@ se actualizan automáticamente con cada push a `main`).
 
 ## 5. Google Calendar/Meet
 
-1. En el proyecto de Google Cloud de Palantiri → **APIs y servicios →
-   Credenciales** → cliente OAuth `palantiri-webapp` → **+ Agregar URI**:
-   `https://dominio-del-cliente.com/api/google/callback`
-2. El cliente conecta SU cuenta de Google desde **Configuración → Integración
-   con Google** dentro de su app.
+✅ **Ya NO hay que registrar nada en Google Cloud por cada consultora.** Gracias
+al *callback único*, todas las instancias usan la misma URL de redirección
+central (la de la instancia madre, ya registrada). El cliente solo tiene que:
+
+1. Conectar SU cuenta de Google desde **Configuración → Integración con Google**
+   dentro de su app.
+
+> Detrás de escena: la instancia inicia el OAuth contra el callback central
+> (`pa-lan-tiri-consultoras.vercel.app/api/google/callback`), que reenvía el
+> código a la instancia de origen (firmado en el `state`). Si algún día cambia
+> la URL de la madre, se ajusta la env var `GOOGLE_CALLBACK_URL`.
 
 ## 6. WhatsApp (worker local del cliente)
 

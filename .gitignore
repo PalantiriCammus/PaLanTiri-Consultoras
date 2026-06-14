@@ -1,0 +1,19 @@
+# Secretos y credenciales — NUNCA subir a git
+.env
+.env.*
+*.local.md
+*client_secret*.json
+client_secret*.json
+
+# Base local Django (legacy)
+db.sqlite3
+
+# Sesión del worker de WhatsApp
+worker/.env
+worker/whatsapp_session/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/

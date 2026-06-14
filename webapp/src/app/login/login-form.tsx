@@ -12,6 +12,7 @@ declare global {
   interface Window {
     onTurnstileSuccess?: (token: string) => void;
     onTurnstileExpired?: () => void;
+    turnstile?: { reset: (widgetId?: string) => void };
   }
 }
 
@@ -53,6 +54,10 @@ export function LoginForm({ nombre, logoUrl }: { nombre: string; logoUrl: string
           : error.message
       );
       setCargando(false);
+      // El token de captcha se consume en cada intento; lo reseteamos para que
+      // el reintento use uno nuevo y no falle con "timeout-or-duplicate".
+      window.turnstile?.reset();
+      setCaptchaToken(null);
       return;
     }
 

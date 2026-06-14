@@ -259,7 +259,7 @@ Date: 2026-06-13
 
 1. Tocá **"Add New"** → **"Project"**
 2. **Import Git Repository**:
-   - Busca: `manuelcammus/PaLanTiri-Consultoras` (es tu repo)
+   - Busca: `PalantiriCammus/PaLanTiri-Consultoras` (es tu repo)
    - Selecciona
 3. Configuración del proyecto:
    - **Framework Preset:** Next.js (detecta solo)

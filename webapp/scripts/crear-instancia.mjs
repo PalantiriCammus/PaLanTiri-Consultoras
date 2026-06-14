@@ -47,7 +47,7 @@ try {
 const token = process.env.VERCEL_TOKEN || cfg.vercelToken;
 if (!token) morir("Falta el token de Vercel. Exportá VERCEL_TOKEN o ponelo en el config (vercelToken).");
 
-const repo = cfg.repo || "manuelcammus/PaLanTiri-Consultoras";
+const repo = cfg.repo || "PalantiriCammus/PaLanTiri-Consultoras";
 const teamId = cfg.teamId || null; // opcional, si los proyectos viven en un team
 const c = cfg.consultora || {};
 const compartidas = cfg.compartidas || {};

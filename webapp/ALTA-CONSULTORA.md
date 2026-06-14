@@ -7,6 +7,38 @@ se actualizan automáticamente con cada push a `main`).
 
 ---
 
+## Resumen rápido (A / B / C)
+
+```
+PARTE A — Supabase (a mano, en la cuenta del cliente)
+  [ ] El cliente crea su cuenta + proyecto en Supabase
+  [ ] SQL Editor → correr webapp/supabase/MIGRACIONES-BUNDLE.sql
+  [ ] Crear admin del cliente (Auto Confirm) + SQL: rol = 'admin'
+  [ ] Settings → API: copiar Project URL, anon key, service_role key
+  [ ] Attack Protection: activar CAPTCHA + pegar Secret Key de Turnstile
+
+PARTE B — Vercel (lo hace el SCRIPT ⚡)
+  [ ] $env:VERCEL_TOKEN="..."   (token de vercel.com/account/tokens)
+  [ ] Completar webapp/scripts/nueva-instancia.local.json (copiar el .example)
+  [ ] node webapp/scripts/crear-instancia.mjs --dry-run   (revisar)
+  [ ] node webapp/scripts/crear-instancia.mjs             (crea proyecto + env vars + deploy)
+
+PARTE C — Cierre (a mano, rápido)
+  [ ] Cloudflare Turnstile: agregar el hostname <nombre>.vercel.app al widget
+  [ ] Google: NADA (callback único ya configurado) 🎉
+  [ ] Consola Palantiri: registrar la instancia con su URL
+  [ ] Verificar https://<nombre>.vercel.app/api/health → status: ok
+```
+
+> El **token de Vercel** es una llave de acceso a tu cuenta para programas (la
+> API). El script lo usa para crear el proyecto y cargar las variables en tu
+> nombre. Es secreto (no se sube a git) y se regenera/borra en
+> https://vercel.com/account/tokens sin afectar tu contraseña.
+
+El detalle de cada parte está abajo.
+
+---
+
 ## 1. Supabase (base de datos propia del cliente)
 
 1. En [supabase.com/dashboard](https://supabase.com/dashboard) → **New project**.

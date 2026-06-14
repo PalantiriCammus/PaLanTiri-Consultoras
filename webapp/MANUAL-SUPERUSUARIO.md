@@ -410,6 +410,48 @@ Vos (en tu instancia):
 
 ---
 
+### Alta automatizada (atajo con script) ⚡
+
+Todo lo anterior se puede hacer mucho más rápido. La parte más tediosa —crear
+el proyecto en Vercel y cargar las 9 variables de entorno— está automatizada en
+un script. Resumen del flujo en 3 partes:
+
+**PARTE A — Supabase (a mano, en la cuenta del cliente):**
+- El cliente crea su cuenta + proyecto en Supabase.
+- SQL Editor → correr `webapp/supabase/MIGRACIONES-BUNDLE.sql` (trae las 8 migraciones de una).
+- Crear el admin del cliente (Auto Confirm) y en SQL: `update public.profiles set rol = 'admin' where email = '...';`
+- Settings → API: copiar Project URL, anon key y service_role key.
+- Attack Protection: activar CAPTCHA + pegar el Secret Key de Turnstile.
+
+**PARTE B — Vercel (lo hace el script):**
+1. Conseguir un **token de Vercel** en https://vercel.com/account/tokens y exportarlo:
+   `\$env:VERCEL_TOKEN="el_token"` (PowerShell).
+2. Copiar `webapp/scripts/nueva-instancia.local.json.example` a
+   `nueva-instancia.local.json` y completarlo (nombre, las 3 claves de Supabase,
+   y las claves compartidas Google/Turnstile/Resend).
+3. Correr:
+   - `node webapp/scripts/crear-instancia.mjs --dry-run` (revisar el plan)
+   - `node webapp/scripts/crear-instancia.mjs` (crea el proyecto + carga las 9 env vars + dispara el deploy)
+
+**PARTE C — Cierre (a mano, rápido):**
+- Cloudflare Turnstile: agregar el hostname `<nombre>.vercel.app` al widget.
+- Google: **nada** (el callback único ya está configurado para todas las instancias).
+- Registrar la instancia en la Consola Palantiri.
+- Verificar `https://<nombre>.vercel.app/api/health` → `status: ok`.
+
+> **¿Qué es el token de Vercel?** Una llave de acceso a tu cuenta de Vercel para
+> programas (la API). El script la usa para crear el proyecto y cargar las
+> variables en tu nombre, sin hacer clics. Es secreta (no se sube a git) y se
+> regenera/borra cuando quieras, sin afectar tu contraseña.
+
+> **Nota sobre Google (callback único):** desde junio 2026 ya no hay que
+> registrar la URL de cada consultora en Google Cloud. Todas las instancias usan
+> un callback central (el de la instancia madre). El cliente solo toca
+> "Conectar con Google" dentro de su app. Si aparece el cartel "Google no
+> verificó esta app", es normal: Configuración avanzada → Continuar.
+
+---
+
 ### Checklist de Alta Completa
 
 ```

@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { agregarInstancia, eliminarInstancia } from "./actions";
+import { agregarInstancia } from "./actions";
 import { CrearConsultoraForm } from "./crear-consultora-form";
+import { EliminarInstancia } from "./eliminar-instancia";
 
 type Salud = {
   status: string;
@@ -131,15 +132,9 @@ export default async function ConsolaPage() {
                 >
                   Ver health
                 </a>
-                <form action={eliminarInstancia} className="ml-auto">
-                  <input type="hidden" name="id" value={inst.id} />
-                  <button
-                    type="submit"
-                    className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
-                  >
-                    Quitar
-                  </button>
-                </form>
+                <div className="ml-auto">
+                  <EliminarInstancia id={inst.id} url={inst.url} nombre={inst.nombre} />
+                </div>
               </div>
             </div>
           );

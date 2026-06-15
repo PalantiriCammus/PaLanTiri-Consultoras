@@ -192,13 +192,30 @@ export async function agregarInstancia(formData: FormData) {
 }
 
 export async function eliminarInstancia(formData: FormData) {
-  const supabase = await createClient();
+  const perfil = await getProfile();
+  if (!perfil || perfil.rol !== "super_admin") {
+    throw new Error("Solo un super administrador puede eliminar consultoras.");
+  }
 
-  const { error } = await supabase
-    .from("instancias_consultoras")
-    .delete()
-    .eq("id", val(formData, "id"));
+  const supabase = await createClient();
+  const id = val(formData, "id");
+  const url = val(formData, "url");
+  const tambienVercel = formData.get("tambienVercel") === "on";
+
+  // 1. Quitar siempre del monitoreo (la tabla)
+  const { error } = await supabase.from("instancias_consultoras").delete().eq("id", id);
   if (error) throw new Error(error.message);
+
+  // 2. (Opcional) eliminar el proyecto en Vercel — irreversible.
+  //    El slug del proyecto sale del subdominio .vercel.app de la URL.
+  if (tambienVercel) {
+    const token = process.env.VERCEL_TOKEN;
+    const host = url.replace(/^https?:\/\//, "");
+    const slug = host.endsWith(".vercel.app") ? host.replace(".vercel.app", "") : null;
+    if (token && slug) {
+      await vercelFetch(token, process.env.VERCEL_TEAM_ID || undefined, "DELETE", `/v9/projects/${slug}`);
+    }
+  }
 
   revalidatePath("/admin/consola");
 }

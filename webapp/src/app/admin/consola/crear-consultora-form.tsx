@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { crearConsultora, type ResultadoAlta } from "./actions";
+import { MIGRACIONES_BUNDLE } from "@/lib/migraciones-bundle";
 
 const input =
   "rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
 
-function Copiar({ texto }: { texto: string }) {
+function Copiar({ texto, label = "Copiar" }: { texto: string; label?: string }) {
   const [ok, setOk] = useState(false);
   return (
     <button
@@ -16,117 +17,201 @@ function Copiar({ texto }: { texto: string }) {
         setOk(true);
         setTimeout(() => setOk(false), 1500);
       }}
-      className="shrink-0 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50"
+      className="shrink-0 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50"
     >
-      {ok ? "¡Copiado!" : "Copiar"}
+      {ok ? "¡Copiado! ✓" : label}
     </button>
   );
 }
 
-function Codigo({ children }: { children: string }) {
+function Codigo({ children, alto = false }: { children: string; alto?: boolean }) {
   return (
-    <div className="mt-2 flex items-start gap-2 rounded-lg bg-slate-900 px-3 py-2">
-      <pre className="flex-1 overflow-x-auto whitespace-pre-wrap break-all font-mono text-[12px] text-emerald-300">
+    <div className="mt-2 rounded-lg bg-slate-900">
+      <div className="flex items-center justify-between border-b border-slate-700 px-3 py-1.5">
+        <span className="text-[11px] font-medium text-slate-400">
+          {alto ? "MIGRACIONES-BUNDLE.sql" : "SQL / valor"}
+        </span>
+        <Copiar texto={children} label={alto ? "Copiar todo" : "Copiar"} />
+      </div>
+      <pre
+        className={`overflow-auto whitespace-pre px-3 py-2 font-mono text-[12px] leading-relaxed text-emerald-300 ${
+          alto ? "max-h-72" : "max-h-40 whitespace-pre-wrap break-all"
+        }`}
+      >
         {children}
       </pre>
-      <Copiar texto={children} />
     </div>
   );
 }
 
-function Paso({
-  n,
+function Modal({
   titulo,
+  onClose,
   children,
 }: {
-  n: number;
   titulo: string;
+  onClose: () => void;
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+
   return (
-    <div className="flex gap-3">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
-        {n}
-      </div>
-      <div className="flex-1 pb-1">
-        <p className="font-semibold text-slate-800">{titulo}</p>
-        <div className="mt-1 space-y-1 text-sm text-slate-600">{children}</div>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-2xl overflow-auto rounded-2xl bg-white p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <h3 className="text-lg font-bold text-slate-900">{titulo}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg border border-slate-200 px-3 py-1 text-sm font-medium text-slate-500 hover:bg-slate-50"
+          >
+            Cerrar ✕
+          </button>
+        </div>
+        <div className="space-y-3 text-sm text-slate-600">{children}</div>
       </div>
     </div>
   );
 }
+
+type Paso = { n: number; titulo: string; resumen: string; contenido: React.ReactNode };
 
 function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
   const host = url.replace("https://", "");
-  return (
-    <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-5">
-      <p className="mb-1 text-base font-bold text-emerald-700">
-        ✅ Proyecto creado en Vercel
-      </p>
-      <p className="mb-4 text-sm text-slate-600">
-        La app ya está desplegando en{" "}
-        <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-600 underline">
-          {host}
-        </a>
-        . Ahora seguí estos pasos para dejarla 100% operativa. Hacelos en orden.
-      </p>
+  const [abierto, setAbierto] = useState<number | null>(null);
 
-      <div className="space-y-5">
-        <Paso n={1} titulo="Migrar la base de Supabase (la del cliente)">
+  const pasos: Paso[] = [
+    {
+      n: 1,
+      titulo: "Migrar la base de Supabase",
+      resumen: "Pegá el SQL completo en el SQL Editor de la base del cliente.",
+      contenido: (
+        <>
           <p>
-            En el proyecto Supabase de esta consultora → <b>SQL Editor → New query</b>. Pegá TODO el
-            archivo <code className="rounded bg-slate-100 px-1">webapp/supabase/MIGRACIONES-BUNDLE.sql</code>{" "}
-            (trae las 8 migraciones) y tocá <b>RUN</b>.
+            En el proyecto Supabase de <b>{nombre}</b> → <b>SQL Editor → New query</b>. Copiá TODO
+            este SQL, pegalo y tocá <b>RUN</b>. Trae las 8 migraciones (tablas, RLS, etc.).
           </p>
-          <p className="text-xs text-slate-400">✔️ Tiene que decir &quot;Success&quot;. Crea todas las tablas.</p>
-        </Paso>
-
-        <Paso n={2} titulo="Crear el usuario admin del cliente">
+          <Codigo alto>{MIGRACIONES_BUNDLE}</Codigo>
+          <p className="text-xs text-slate-400">✔️ Tiene que decir &quot;Success&quot;.</p>
+        </>
+      ),
+    },
+    {
+      n: 2,
+      titulo: "Crear el usuario admin del cliente",
+      resumen: "Alta del usuario en Authentication + asignarle el rol admin por SQL.",
+      contenido: (
+        <>
           <p>
             Supabase → <b>Authentication → Users → Add user → Create new user</b>:
           </p>
-          <ul className="ml-4 list-disc text-xs text-slate-500">
-            <li>Email del cliente (ej. <code className="rounded bg-slate-100 px-1">maria@empresa.com</code>)</li>
-            <li>Una contraseña temporal</li>
-            <li>✅ Tildá <b>Auto Confirm User</b></li>
+          <ul className="ml-4 list-disc text-sm">
+            <li>
+              Email del cliente (ej. <code className="rounded bg-slate-100 px-1">maria@empresa.com</code>)
+            </li>
+            <li>Una contraseña temporal (se la pasás vos)</li>
+            <li>
+              ✅ Tildá <b>Auto Confirm User</b> (si no, no puede entrar)
+            </li>
           </ul>
-          <p className="mt-1">Después, en <b>SQL Editor</b>, dale el rol admin (cambiá el email):</p>
+          <p className="mt-2">
+            Después, en <b>SQL Editor</b>, dale el rol admin (reemplazá el email):
+          </p>
           <Codigo>{`update public.profiles set rol = 'admin' where email = 'EMAIL_DEL_CLIENTE';`}</Codigo>
-          <p className="text-xs text-slate-400">⚠️ Es <b>admin</b>, no super_admin (ese sos vos / Palantiri).</p>
-        </Paso>
-
-        <Paso n={3} titulo="Activar el CAPTCHA en Supabase">
-          <p>
-            Supabase → <b>Authentication → Attack Protection</b> → <b>Enable Captcha protection</b> →
-            proveedor <b>Turnstile</b> → pegá la <b>Secret Key</b> de Cloudflare → <b>Save</b>.
-          </p>
           <p className="text-xs text-slate-400">
-            Es la Secret Key del widget Palantiri (la misma para todas las consultoras).
+            ⚠️ Es <b>admin</b>, no super_admin (ese rol es tuyo / de Palantiri).
           </p>
-        </Paso>
-
-        <Paso n={4} titulo="Agregar el dominio al widget de Cloudflare">
+        </>
+      ),
+    },
+    {
+      n: 3,
+      titulo: "Activar el CAPTCHA en Supabase",
+      resumen: "Authentication → Attack Protection → pegar la Secret Key de Turnstile.",
+      contenido: (
+        <>
           <p>
-            <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">
+            Supabase → <b>Authentication → Attack Protection</b>:
+          </p>
+          <ul className="ml-4 list-disc text-sm">
+            <li>
+              <b>Enable Captcha protection</b> → ON
+            </li>
+            <li>
+              Provider: <b>Turnstile</b>
+            </li>
+            <li>
+              <b>Captcha secret</b>: pegá la <b>Secret Key</b> del widget Palantiri de Cloudflare
+            </li>
+            <li>
+              <b>Save</b>
+            </li>
+          </ul>
+          <p className="text-xs text-slate-400">
+            La Secret Key es la misma para todas las consultoras (widget único de Cloudflare).
+          </p>
+        </>
+      ),
+    },
+    {
+      n: 4,
+      titulo: "Agregar el dominio al widget de Cloudflare",
+      resumen: `Sumar ${host} a los hostnames del widget Turnstile.`,
+      contenido: (
+        <>
+          <p>
+            <a
+              href="https://dash.cloudflare.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 underline"
+            >
               dash.cloudflare.com
             </a>{" "}
-            → <b>Turnstile</b> → widget <b>Palantiri</b> → <b>Settings → Hostnames → Add hostname</b>:
+            → <b>Turnstile</b> → widget <b>Palantiri</b> → <b>Settings → Hostnames → Add hostname</b>.
+            Pegá este dominio:
           </p>
           <Codigo>{host}</Codigo>
           <p className="text-xs text-slate-400">Sin esto, el captcha no carga y nadie puede entrar.</p>
-        </Paso>
-
-        <Paso n={5} titulo="Google: nada 🎉">
-          <p>
-            No hay que tocar Google Cloud (callback único). El cliente solo conecta su cuenta desde{" "}
-            <b>Configuración → Integración con Google</b> dentro de la app.
-          </p>
-        </Paso>
-
-        <Paso n={6} titulo="Verificar que quedó todo bien">
+        </>
+      ),
+    },
+    {
+      n: 5,
+      titulo: "Google: nada 🎉",
+      resumen: "No hay que tocar Google Cloud (callback único).",
+      contenido: (
+        <p>
+          No hay que registrar nada en Google Cloud. Gracias al <b>callback único</b>, el cliente
+          solo conecta su cuenta desde <b>Configuración → Integración con Google</b> dentro de la
+          app, cuando quiera usar Calendar/Meet/Drive.
+        </p>
+      ),
+    },
+    {
+      n: 6,
+      titulo: "Verificar que quedó todo bien",
+      resumen: "Chequear /api/health y entrar al login.",
+      contenido: (
+        <>
           <p>
             Abrí{" "}
-            <a href={`${url}/api/health`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">
+            <a
+              href={`${url}/api/health`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 underline"
+            >
               {host}/api/health
             </a>{" "}
             → tiene que decir <code className="rounded bg-slate-100 px-1">status: ok</code> y los 4
@@ -134,18 +219,64 @@ function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
           </p>
           <p>
             Después entrá al{" "}
-            <a href={`${url}/login`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">
+            <a
+              href={`${url}/login`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 underline"
+            >
               login
             </a>{" "}
             con el usuario admin y confirmá que el captcha te deja pasar.
           </p>
-        </Paso>
+        </>
+      ),
+    },
+  ];
+
+  const pasoAbierto = pasos.find((p) => p.n === abierto);
+
+  return (
+    <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-5">
+      <p className="mb-1 text-base font-bold text-emerald-700">✅ Proyecto creado en Vercel</p>
+      <p className="mb-4 text-sm text-slate-600">
+        La app ya está desplegando en{" "}
+        <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-600 underline">
+          {host}
+        </a>
+        . Tocá cada paso para abrir su instructivo (con el contenido listo para copiar). Hacelos en orden.
+      </p>
+
+      <div className="space-y-2">
+        {pasos.map((p) => (
+          <button
+            key={p.n}
+            type="button"
+            onClick={() => setAbierto(p.n)}
+            className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50/40"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
+              {p.n}
+            </span>
+            <span className="flex-1">
+              <span className="block font-semibold text-slate-800">{p.titulo}</span>
+              <span className="block text-xs text-slate-500">{p.resumen}</span>
+            </span>
+            <span className="shrink-0 text-sm font-medium text-indigo-600">Abrir →</span>
+          </button>
+        ))}
       </div>
 
-      <p className="mt-5 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
-        💡 La instancia ya quedó registrada abajo en esta Consola para monitorearla. Cuando los 4
-        servicios estén verdes, está lista para entregar al cliente.
+      <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+        💡 La instancia ya quedó registrada abajo en esta Consola. Cuando los 4 servicios estén
+        verdes, está lista para entregar al cliente.
       </p>
+
+      {pasoAbierto && (
+        <Modal titulo={`Paso ${pasoAbierto.n}: ${pasoAbierto.titulo}`} onClose={() => setAbierto(null)}>
+          {pasoAbierto.contenido}
+        </Modal>
+      )}
     </div>
   );
 }
@@ -163,8 +294,8 @@ export function CrearConsultoraForm() {
       </h2>
       <p className="mb-4 text-xs text-slate-500">
         Crea el proyecto en Vercel, le carga las variables de entorno y dispara el deploy. La base
-        Supabase la creás vos/el cliente en su cuenta; acá pegás sus 3 claves (Settings → API).
-        Las claves compartidas (Google, Turnstile, Resend) se reutilizan de esta instancia.
+        Supabase la creás vos/el cliente en su cuenta; acá pegás sus 3 claves (Settings → API). Las
+        claves compartidas (Google, Turnstile, Resend) se reutilizan de esta instancia.
       </p>
 
       <form action={action} className="grid grid-cols-1 gap-3 sm:grid-cols-2">

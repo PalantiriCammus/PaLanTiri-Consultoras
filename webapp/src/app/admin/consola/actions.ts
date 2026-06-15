@@ -16,7 +16,13 @@ function val(formData: FormData, key: string): string {
 // (Google/Turnstile/Resend) se reutilizan de las env vars de ESTA instancia.
 // ---------------------------------------------------------------------------
 
-export type ResultadoAlta = { ok: boolean; mensaje: string; url?: string };
+export type ResultadoAlta = {
+  ok: boolean;
+  mensaje: string;
+  url?: string;
+  nombre?: string;
+  deployOk?: boolean;
+};
 
 const VERCEL_API = "https://api.vercel.com";
 const REPO = process.env.VERCEL_GIT_REPO ?? "PalantiriCammus/PaLanTiri-Consultoras";
@@ -133,6 +139,7 @@ export async function crearConsultora(
   }
 
   // 3. Disparar el primer deploy
+  let deployOk = false;
   let deployMsg = "Deploy: disparalo desde Vercel o con un push a main.";
   if (repoId) {
     const dep = await vercelFetch(token, teamId, "POST", "/v13/deployments", {
@@ -141,7 +148,10 @@ export async function crearConsultora(
       target: "production",
       gitSource: { type: "github", repoId, ref: "main" },
     });
-    if (dep.ok) deployMsg = "Deploy disparado ✅";
+    if (dep.ok) {
+      deployOk = true;
+      deployMsg = "Deploy disparado ✅";
+    }
   }
 
   // 4. Registrar la instancia en la Consola para monitorearla
@@ -152,17 +162,14 @@ export async function crearConsultora(
 
   revalidatePath("/admin/consola");
 
-  const pendientes = [
-    "Falta a mano: el cliente crea su base Supabase y corre MIGRACIONES-BUNDLE.sql + crea su usuario admin + activa CAPTCHA (Secret Key).",
-    `Agregar el hostname ${nombre}.vercel.app al widget de Cloudflare Turnstile.`,
-    "Google: nada (callback único).",
-  ];
   const aviso = fallidas.length ? ` ⚠️ Env vars con error: ${fallidas.join(", ")}.` : "";
 
   return {
     ok: true,
     url: siteUrl,
-    mensaje: `Proyecto ${nombre} creado en Vercel. ${deployMsg}${aviso}\n\nPendientes:\n• ${pendientes.join("\n• ")}`,
+    nombre,
+    deployOk,
+    mensaje: `Proyecto ${nombre} creado en Vercel. ${deployMsg}${aviso}`,
   };
 }
 

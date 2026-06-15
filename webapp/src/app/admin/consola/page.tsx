@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { agregarInstancia, eliminarInstancia } from "./actions";
+import { CrearConsultoraForm } from "./crear-consultora-form";
 
 type Salud = {
   status: string;
@@ -151,9 +152,11 @@ export default async function ConsolaPage() {
         )}
       </div>
 
+      <CrearConsultoraForm />
+
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-400">
-          Registrar consultora
+          Registrar consultora (solo monitoreo)
         </h2>
         <p className="mb-4 text-xs text-slate-400">
           Esta consola solo <strong>monitorea</strong> instancias que ya están desplegadas: la URL es

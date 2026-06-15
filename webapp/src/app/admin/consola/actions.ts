@@ -87,19 +87,6 @@ export async function crearConsultora(
     return { ok: false, mensaje: "La URL de Supabase debe empezar con https://" };
   }
 
-  const siteUrl = `https://${nombre}.vercel.app`;
-  const envVars: Record<string, string> = {
-    NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: anonKey,
-    SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
-    NEXT_PUBLIC_SITE_URL: siteUrl,
-    EMAIL_FROM: emailFrom,
-    RESEND_API_KEY: process.env.RESEND_API_KEY ?? "",
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? "",
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? "",
-    NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
-  };
-
   // 1. Crear el proyecto (conectado al repo, root webapp)
   const crear = await vercelFetch(token, teamId, "POST", "/v11/projects", {
     name: nombre,
@@ -124,6 +111,29 @@ export async function crearConsultora(
   } else {
     return { ok: false, mensaje: `Error creando el proyecto en Vercel (${crear.status}): ${crear.texto}` };
   }
+
+  // Descubrir el dominio REAL que asignó Vercel. NO asumimos {nombre}.vercel.app:
+  // si ese subdominio ya estaba tomado (global), Vercel le pone un sufijo (ej. -jet).
+  let host = `${nombre}.vercel.app`;
+  const dominios = await vercelFetch(token, teamId, "GET", `/v9/projects/${proyectoId}/domains`);
+  if (dominios.ok && dominios.json) {
+    const lista = (dominios.json.domains as { name?: string }[] | undefined) ?? [];
+    const real = lista.map((d) => d?.name).find((n) => !!n && n.endsWith(".vercel.app"));
+    if (real) host = real;
+  }
+  const siteUrl = `https://${host}`;
+
+  const envVars: Record<string, string> = {
+    NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: anonKey,
+    SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
+    NEXT_PUBLIC_SITE_URL: siteUrl,
+    EMAIL_FROM: emailFrom,
+    RESEND_API_KEY: process.env.RESEND_API_KEY ?? "",
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? "",
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
+  };
 
   // 2. Cargar las env vars
   const fallidas: string[] = [];

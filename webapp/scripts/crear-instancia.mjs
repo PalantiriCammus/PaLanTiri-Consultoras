@@ -57,21 +57,22 @@ for (const campo of ["nombre", "supabaseUrl", "anonKey", "serviceRoleKey"]) {
 }
 
 const nombre = c.nombre.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
-const siteUrl = c.siteUrl || `https://${nombre}.vercel.app`;
+// siteUrl estimada; se reemplaza por el dominio REAL que asigna Vercel tras crear.
+let siteUrl = c.siteUrl || `https://${nombre}.vercel.app`;
 
-// Env vars que va a tener la instancia
-const envVars = {
+// Las env vars se arman con la siteUrl ya conocida (real o de config).
+// (GOOGLE_CALLBACK_URL no hace falta: el código usa el callback central por defecto)
+const buildEnvVars = (url) => ({
   NEXT_PUBLIC_SUPABASE_URL: c.supabaseUrl,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: c.anonKey,
   SUPABASE_SERVICE_ROLE_KEY: c.serviceRoleKey,
-  NEXT_PUBLIC_SITE_URL: siteUrl,
+  NEXT_PUBLIC_SITE_URL: url,
   EMAIL_FROM: c.emailFrom || `${c.nombre} <onboarding@resend.dev>`,
   RESEND_API_KEY: compartidas.RESEND_API_KEY || "",
   GOOGLE_CLIENT_ID: compartidas.GOOGLE_CLIENT_ID || "",
   GOOGLE_CLIENT_SECRET: compartidas.GOOGLE_CLIENT_SECRET || "",
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: compartidas.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "",
-};
-// (GOOGLE_CALLBACK_URL no hace falta: el código usa el callback central por defecto)
+});
 
 async function vercel(metodo, ruta, body) {
   const url = teamId
@@ -90,9 +91,10 @@ async function vercel(metodo, ruta, body) {
 
 console.log(`\n🚀 Alta de instancia: ${nombre}`);
 console.log(`   Repo:     ${repo}`);
-console.log(`   Site URL: ${siteUrl}`);
-console.log(`   Vars:     ${Object.keys(envVars).join(", ")}`);
-const faltantes = Object.entries(envVars).filter(([, v]) => !v).map(([k]) => k);
+console.log(`   Site URL (estimada): ${siteUrl}`);
+const envPreview = buildEnvVars(siteUrl);
+console.log(`   Vars:     ${Object.keys(envPreview).join(", ")}`);
+const faltantes = Object.entries(envPreview).filter(([, v]) => !v).map(([k]) => k);
 if (faltantes.length) console.log(`   ⚠️  Vacías (revisá compartidas): ${faltantes.join(", ")}`);
 
 if (dryRun) {
@@ -123,8 +125,23 @@ if (crear.ok) {
   morir(`Error creando el proyecto: ${crear.status}\n${crear.texto}`);
 }
 
+// --- 1b. Descubrir el dominio REAL ------------------------------------
+// Los subdominios .vercel.app son globales; si el nombre ya estaba tomado,
+// Vercel le pone un sufijo (ej. -jet). No asumimos {nombre}.vercel.app.
+if (!c.siteUrl) {
+  const dom = await vercel("GET", `/v9/projects/${proyectoId}/domains`);
+  const real = dom.ok && dom.json?.domains
+    ? dom.json.domains.map((d) => d?.name).find((n) => n && n.endsWith(".vercel.app"))
+    : null;
+  if (real) {
+    siteUrl = `https://${real}`;
+    console.log(`   🌐 Dominio real asignado por Vercel: ${real}`);
+  }
+}
+
 // --- 2. Cargar las env vars --------------------------------------------
 console.log("2/3 Cargando env vars…");
+const envVars = buildEnvVars(siteUrl);
 for (const [key, value] of Object.entries(envVars)) {
   if (!value) { console.log(`   • ${key}: (vacía, salteada)`); continue; }
   const r = await vercel("POST", `/v10/projects/${proyectoId}/env`, {
@@ -154,6 +171,6 @@ console.log(`\n✅ Instancia ${nombre} preparada.\n`);
 console.log("Pasos que QUEDAN a mano (no se automatizan):");
 console.log("  • Supabase: el cliente crea su base y corre webapp/supabase/MIGRACIONES-BUNDLE.sql");
 console.log("  • Supabase: crear usuario admin del cliente + CAPTCHA (Attack Protection)");
-console.log(`  • Cloudflare Turnstile: agregar el hostname ${nombre}.vercel.app al widget`);
+console.log(`  • Cloudflare Turnstile: agregar el hostname ${siteUrl.replace("https://", "")} al widget`);
 console.log("  • Google: NADA (callback único ya configurado) 🎉");
 console.log(`  • Registrar la instancia en la Consola Palantiri (URL ${siteUrl})\n`);

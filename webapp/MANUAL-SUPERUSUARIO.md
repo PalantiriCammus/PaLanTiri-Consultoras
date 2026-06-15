@@ -207,17 +207,15 @@ Date: 2026-06-13
 ```
 
 5. Ejecuta las **migraciones SQL**:
-   - En Supabase, abrí **SQL Editor** (izquierda)
-   - Para cada archivo (en orden), copia todo el contenido y pégalo en SQL Editor:
-     - `webapp/supabase/migrations/0001_schema.sql`
-     - `webapp/supabase/migrations/0002_rls.sql`
-     - `webapp/supabase/migrations/0003_seed.sql`
-     - `webapp/supabase/migrations/0004_storage.sql`
-     - `webapp/supabase/migrations/0005_email_queue.sql`
-     - `webapp/supabase/migrations/0006_configuracion_consultora.sql`
-     - `webapp/supabase/migrations/0007_instancias_consultoras.sql`
-   - Tocá **"RUN"** o **Ctrl+Enter** después de cada uno
-   - ✔️ Verdes = OK
+   - En Supabase, abrí **SQL Editor** (izquierda).
+   - **Lo más rápido:** pegá TODO el contenido de
+     `webapp/supabase/MIGRACIONES-BUNDLE.sql` (trae las 8 migraciones de una) →
+     **RUN** → ✔️ "Success".
+   - O una por una, en orden:
+     - `0001_schema.sql` → `0002_rls.sql` → `0003_seed.sql` → `0004_storage.sql`
+     - `0005_email_queue.sql` → `0006_configuracion_consultora.sql`
+     - `0007_instancias_consultoras.sql` → `0008_admin_gestiona_usuarios.sql`
+   - Tocá **"RUN"** después de cada uno → ✔️ Verdes = OK
 
 6. Crea el **usuario admin de ConfiaRH** (María es la **admin** de su consultora, NO super_admin — el super_admin sos vos):
    - Abrí **Authentication → Users** (izquierda)
@@ -455,21 +453,19 @@ un script. Resumen del flujo en 3 partes:
 ### Checklist de Alta Completa
 
 ```
-[ ] Base Supabase creada y migrada (0001-0007)
-[ ] Proyecto Vercel creado y deployado
-[ ] Environment variables en Vercel (todas 9)
-[ ] Dominio en Vercel y DNS configurado
-[ ] Resend: cuenta, dominio verificado, API key
+[ ] Base Supabase creada y migrada (bundle 0001-0008) en la cuenta del cliente
+[ ] Settings → API: copiadas Project URL, anon key, service_role key
+[ ] Proyecto Vercel + env vars + deploy (a mano O con el script crear-instancia.mjs)
 [ ] CAPTCHA (las 3 piezas): dominio en widget Cloudflare + Site Key en Vercel + Secret Key/ON en Supabase
-[ ] Usuario María creado y es admin (no super_admin)
-[ ] María puede entrar a https://confiarh.com.ar
-[ ] María configura identidad en Configuración
-[ ] (Opcional) Google conectado
-[ ] (Opcional) Worker enviado a María
-[ ] ConfiaRH registrada en tu Consola
-[ ] Health check muestra 🟢 En línea
-[ ] Test: envía un email de prueba, llega
-[ ] Test: (si worker) envía WhatsApp de prueba, llega
+[ ] Usuario admin del cliente creado y con rol admin (NO super_admin)
+[ ] (Opcional) dominio propio en Vercel + DNS — si no, queda en <nombre>.vercel.app
+[ ] (Opcional) Resend: dominio verificado para emails reales — si no, modo prueba
+[ ] Google: NADA en Google Cloud (callback único); el cliente solo toca "Conectar"
+[ ] El cliente puede entrar a la URL (login con captcha)
+[ ] El cliente configura identidad (nombre/logo) en Configuración
+[ ] (Opcional) Worker de WhatsApp enviado al cliente
+[ ] Instancia registrada en tu Consola Palantiri
+[ ] Health check (/api/health) muestra status: ok y 4 servicios verdes
 ```
 
 ---

@@ -28,6 +28,15 @@ export async function guardarBusqueda(formData: FormData) {
   const flyer = formData.get("flyer") as File | null;
   const flyerPath = flyer && flyer.size > 0 ? await subirFlyer(flyer) : null;
 
+  // Modalidad → es_remoto (presencial/hibrido = false, remoto = true).
+  const esRemoto = val(formData, "modalidad_trabajo") === "remoto";
+  // Rango de edad combinado a partir de min/max.
+  const edadMin = val(formData, "edad_min");
+  const edadMax = val(formData, "edad_max");
+  const edadRango = edadMin && edadMax ? `${edadMin} a ${edadMax}` : "";
+  // Zona: el texto libre tiene prioridad sobre el desplegable.
+  const zona = val(formData, "zona_text") || val(formData, "zona_select");
+
   const data = {
     ...(flyerPath ? { flyer_imagen_path: flyerPath } : {}),
     empresa_id: Number(val(formData, "empresa_id")),
@@ -37,9 +46,8 @@ export async function guardarBusqueda(formData: FormData) {
     nivel: val(formData, "nivel") || "semi_senior",
     experiencia_minima_anios: Number(val(formData, "experiencia_minima_anios") || "0"),
     educacion_minima: val(formData, "educacion_minima"),
-    nivel_estudio_minimo_id: nullableNum(formData, "nivel_estudio_minimo_id"),
     habilidades_requeridas: val(formData, "habilidades_requeridas"),
-    es_remoto: formData.get("es_remoto") === "on",
+    es_remoto: esRemoto,
     ubicacion_puesto: val(formData, "ubicacion_puesto"),
     salario_minimo: Number(val(formData, "salario_minimo") || "0"),
     salario_maximo: Number(val(formData, "salario_maximo") || "0"),
@@ -53,19 +61,19 @@ export async function guardarBusqueda(formData: FormData) {
     prioridad: val(formData, "prioridad") || "normal",
     fecha_vencimiento: nullable(formData, "fecha_vencimiento"),
     fecha_inicio: nullable(formData, "fecha_inicio"),
-    jd_url: nullable(formData, "jd_url"),
     comision_porcentaje: nullableNum(formData, "comision_porcentaje"),
     salario_estipulado_comision: nullableNum(formData, "salario_estipulado_comision"),
     notas_internas: val(formData, "notas_internas"),
-    // Job Description
+    // Descripción detallada del perfil
     mision_puesto: nullable(formData, "mision_puesto"),
     responsabilidades: nullable(formData, "responsabilidades"),
     requisitos_excluyentes: nullable(formData, "requisitos_excluyentes"),
     requisitos_deseables: nullable(formData, "requisitos_deseables"),
     candidato_ideal: nullable(formData, "candidato_ideal"),
+    preguntas_informe: nullable(formData, "preguntas_informe"),
     observaciones: nullable(formData, "observaciones"),
-    edad_rango: nullable(formData, "edad_rango"),
-    zona_residencia: nullable(formData, "zona_residencia"),
+    edad_rango: edadRango || null,
+    zona_residencia: zona || null,
   };
 
   if (id) {

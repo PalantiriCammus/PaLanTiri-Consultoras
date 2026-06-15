@@ -1,7 +1,7 @@
 -- ============================================================
 -- BUNDLE DE MIGRACIONES - Plataforma Palantiri
 -- Pegar TODO esto en Supabase -> SQL Editor -> RUN (una sola vez,
--- en una base NUEVA y vacia). Incluye migraciones 0001 a 0008.
+-- en una base NUEVA y vacia). Incluye migraciones 0001 a 0009.
 -- ============================================================
 
 -- >>>>>>>>>>>>>>>>>>>>>>  0001_schema.sql  <<<<<<<<<<<<<<<<<<<<<<
@@ -1714,3 +1714,16 @@ begin
   return new;
 end;
 $$;
+
+-- >>>>>>>>>>>>>>>>>>>>>>  0009_titulos_requeridos.sql  <<<<<<<<<<<<<<<<<<<<<<
+-- ------------------------------------------------------------
+-- 0009 — Títulos requeridos en la búsqueda
+-- ------------------------------------------------------------
+-- Campo de texto (lista separada por comas) con los títulos oficiales que
+-- requiere la búsqueda. Permite multi-selección (ej. "Contador Público,
+-- Lic. en Administración, Lic. en Economía" para Gerente de Adm. y Finanzas).
+-- Sirve también para enriquecer la base de talentos y futuros matchings.
+-- ------------------------------------------------------------
+
+alter table public.perfiles_busqueda
+  add column if not exists titulos_requeridos text not null default '';

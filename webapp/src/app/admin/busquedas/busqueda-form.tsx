@@ -4,6 +4,7 @@ import { PUESTOS } from "@/lib/puestos";
 import { guardarBusqueda } from "./actions";
 import { SkillsIndex } from "./skills-index";
 import { BeneficiosPerks } from "./beneficios-perks";
+import { EducacionTitulos } from "./educacion-titulos";
 
 type Busqueda = {
   id?: number;
@@ -14,6 +15,7 @@ type Busqueda = {
   nivel?: string;
   experiencia_minima_anios?: number;
   educacion_minima?: string;
+  titulos_requeridos?: string;
   habilidades_requeridas?: string;
   es_remoto?: boolean;
   ubicacion_puesto?: string;
@@ -266,16 +268,12 @@ export async function BusquedaForm({ busqueda }: { busqueda?: Busqueda }) {
             <textarea name="requisitos_excluyentes" defaultValue={busqueda?.requisitos_excluyentes ?? ""} rows={3} className={inputCls} /></label>
           <label><Label>Requisitos deseables / valorados (uno por línea)</Label>
             <textarea name="requisitos_deseables" defaultValue={busqueda?.requisitos_deseables ?? ""} rows={3} className={inputCls} /></label>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label><Label>Educación mínima</Label>
-              <select name="educacion_minima" defaultValue={busqueda?.educacion_minima ?? ""} className={inputCls}>
-                <option value="">-- Seleccionar --</option>
-                {["Secundario Completo","Terciario en Curso","Terciario Completo","Universitario en Curso","Universitario Completo","Posgrado / Maestría","Sin Especificar"].map((o) => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </label>
-            <label><Label>Horarios de descansos / breaks</Label>
-              <input name="descansos" defaultValue={busqueda?.descansos ?? ""} placeholder="Ej: 10 min desayuno, 40 min almuerzo" className={inputCls} /></label>
-          </div>
+          <EducacionTitulos
+            defaultEducacion={busqueda?.educacion_minima ?? ""}
+            defaultTitulos={busqueda?.titulos_requeridos ?? ""}
+          />
+          <label><Label>Horarios de descansos / breaks</Label>
+            <input name="descansos" defaultValue={busqueda?.descansos ?? ""} placeholder="Ej: 10 min desayuno, 40 min almuerzo" className={inputCls} /></label>
           <div><Label>Beneficios y perks (uno por línea)</Label>
             <BeneficiosPerks defaultValue={busqueda?.beneficios ?? ""} /></div>
           <label><Label>Observaciones o notas de entrega importantes</Label>

@@ -46,6 +46,7 @@ export async function guardarBusqueda(formData: FormData) {
     nivel: val(formData, "nivel") || "semi_senior",
     experiencia_minima_anios: Number(val(formData, "experiencia_minima_anios") || "0"),
     educacion_minima: val(formData, "educacion_minima"),
+    titulos_requeridos: val(formData, "titulos_requeridos"),
     habilidades_requeridas: val(formData, "habilidades_requeridas"),
     es_remoto: esRemoto,
     ubicacion_puesto: val(formData, "ubicacion_puesto"),

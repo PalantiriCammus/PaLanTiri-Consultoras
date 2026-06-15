@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server";
 import { guardarEmpresa } from "./actions";
 
 type Empresa = {
@@ -14,13 +15,19 @@ type Empresa = {
   provincia?: string;
   ciudad?: string;
   direccion?: string;
+  codigo_postal?: string | null;
   contacto_nombre?: string;
   contacto_email?: string;
   contacto_telefono?: string;
   contacto_puesto?: string;
+  contacto_comercial_nombre?: string | null;
+  contacto_comercial_cargo?: string | null;
+  contacto_comercial_telefono?: string | null;
+  contacto_comercial_email?: string | null;
   modalidad_contratacion?: string;
   garantia?: string;
   comision_porcentaje?: number;
+  salario_promedio_ofrecido?: number | null;
   activa?: boolean;
 };
 
@@ -51,7 +58,10 @@ function Campo({
   );
 }
 
-export function EmpresaForm({ empresa }: { empresa?: Empresa }) {
+export async function EmpresaForm({ empresa }: { empresa?: Empresa }) {
+  const supabase = await createClient();
+  const { data: rubros } = await supabase.from("rubros").select("id, nombre").order("nombre");
+
   return (
     <form action={guardarEmpresa} className="space-y-8">
       {empresa?.id && <input type="hidden" name="id" value={empresa.id} />}
@@ -74,6 +84,20 @@ export function EmpresaForm({ empresa }: { empresa?: Empresa }) {
               <option value="publica">Pública</option>
             </select>
           </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-slate-700">Rubro / Sector</span>
+            <select
+              name="rubro_id"
+              defaultValue={empresa?.rubro_id ?? ""}
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            >
+              <option value="">-- Seleccionar rubro --</option>
+              {(rubros ?? []).map((r) => (
+                <option key={r.id} value={r.id}>{r.nombre}</option>
+              ))}
+            </select>
+          </label>
+          <Campo label="…o nuevo rubro (se crea solo)" name="nuevo_rubro" />
           <Campo label="Sitio web" name="website" defaultValue={empresa?.website} />
         </div>
       </section>
@@ -107,9 +131,22 @@ export function EmpresaForm({ empresa }: { empresa?: Empresa }) {
           <Campo label="País" name="pais" defaultValue={empresa?.pais ?? "Argentina"} />
           <Campo label="Provincia" name="provincia" defaultValue={empresa?.provincia} />
           <Campo label="Ciudad" name="ciudad" defaultValue={empresa?.ciudad} />
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-2">
             <Campo label="Dirección" name="direccion" defaultValue={empresa?.direccion} />
           </div>
+          <Campo label="Código postal" name="codigo_postal" defaultValue={empresa?.codigo_postal} />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          Contacto comercial
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Campo label="Nombre y apellido" name="contacto_comercial_nombre" defaultValue={empresa?.contacto_comercial_nombre} />
+          <Campo label="Cargo" name="contacto_comercial_cargo" defaultValue={empresa?.contacto_comercial_cargo} />
+          <Campo label="Teléfono" name="contacto_comercial_telefono" defaultValue={empresa?.contacto_comercial_telefono} />
+          <Campo label="Email comercial" name="contacto_comercial_email" type="email" defaultValue={empresa?.contacto_comercial_email} />
         </div>
       </section>
 
@@ -145,6 +182,12 @@ export function EmpresaForm({ empresa }: { empresa?: Empresa }) {
             name="comision_porcentaje"
             type="number"
             defaultValue={empresa?.comision_porcentaje ?? 20}
+          />
+          <Campo
+            label="Salario promedio ofrecido ($)"
+            name="salario_promedio_ofrecido"
+            type="number"
+            defaultValue={empresa?.salario_promedio_ofrecido}
           />
         </div>
         <label className="mt-4 flex items-center gap-2 text-sm">

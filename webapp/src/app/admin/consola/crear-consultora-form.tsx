@@ -136,6 +136,30 @@ function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
     },
     {
       n: 3,
+      titulo: "Tu acceso de super_admin (soporte)",
+      resumen: "Creá tu usuario en esta base y dale rol super_admin para entrar de soporte.",
+      contenido: (
+        <>
+          <p>
+            Para poder entrar a esta consultora vos mismo (soporte, gestión de usuarios, ver la
+            Consola), creá <b>tu</b> usuario en la base nueva: Supabase →{" "}
+            <b>Authentication → Users → Add user → Create new user</b> con <b>tu</b> email y ✅{" "}
+            <b>Auto Confirm User</b>.
+          </p>
+          <p>
+            Después, en <b>SQL Editor</b>, date el rol super_admin (reemplazá por tu email):
+          </p>
+          <Codigo>{`update public.profiles set rol = 'super_admin' where email = 'TU_EMAIL';`}</Codigo>
+          <p className="text-xs text-slate-400">
+            💡 Aparte, para administrar la base desde el dashboard de Supabase (SQL, logs, backups),
+            pedile al cliente que te invite como <b>Administrator</b> a su organización
+            (Organization → Team → Invite).
+          </p>
+        </>
+      ),
+    },
+    {
+      n: 4,
       titulo: "Activar el CAPTCHA en Supabase",
       resumen: "Authentication → Attack Protection → pegar la Secret Key de Turnstile.",
       contenido: (
@@ -164,7 +188,7 @@ function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
       ),
     },
     {
-      n: 4,
+      n: 5,
       titulo: "Agregar el dominio al widget de Cloudflare",
       resumen: `Sumar ${host} a los hostnames del widget Turnstile.`,
       contenido: (
@@ -187,7 +211,7 @@ function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
       ),
     },
     {
-      n: 5,
+      n: 6,
       titulo: "Google: nada 🎉",
       resumen: "No hay que tocar Google Cloud (callback único).",
       contenido: (
@@ -199,7 +223,7 @@ function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
       ),
     },
     {
-      n: 6,
+      n: 7,
       titulo: "Verificar que quedó todo bien",
       resumen: "Chequear /api/health y entrar al login.",
       contenido: (

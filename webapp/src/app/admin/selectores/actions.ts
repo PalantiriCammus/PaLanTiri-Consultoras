@@ -26,6 +26,7 @@ export async function guardarSelector(formData: FormData) {
     telefono: val(formData, "telefono"),
     especializacion: val(formData, "especializacion") || "general",
     experiencia_anos: Number(val(formData, "experiencia_anos") || "0"),
+    alias_publico: nullable(formData, "alias_publico"),
     descripcion_perfil: val(formData, "descripcion_perfil"),
     pais: val(formData, "pais") || "Argentina",
     provincia: val(formData, "provincia"),

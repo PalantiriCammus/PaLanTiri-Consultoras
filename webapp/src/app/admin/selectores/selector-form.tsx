@@ -8,6 +8,7 @@ type Selector = {
   telefono?: string;
   especializacion?: string;
   experiencia_anos?: number;
+  alias_publico?: string | null;
   descripcion_perfil?: string;
   pais?: string;
   provincia?: string;
@@ -100,6 +101,7 @@ export function SelectorForm({ selector, usuarios = [] }: { selector?: Selector;
             type="number"
             defaultValue={selector?.experiencia_anos ?? 0}
           />
+          <Campo label="Alias público" name="alias_publico" defaultValue={selector?.alias_publico} />
           <div className="sm:col-span-2">
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-slate-700">Descripción de perfil</span>

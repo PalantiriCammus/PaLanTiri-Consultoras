@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { urlVerCv } from "@/lib/storage/cv";
 import { SkillsIndex } from "@/app/admin/busquedas/skills-index";
+import { SelectorMultiple } from "@/app/admin/busquedas/selector-multiple";
 import { CATALOGO_TITULOS } from "@/lib/titulos";
-import { CATALOGO_IDIOMAS } from "@/lib/idiomas";
+import { IDIOMAS_COMUNES } from "@/lib/idiomas";
 import { guardarPostulante } from "./actions";
 
 type Postulante = {
@@ -18,7 +19,6 @@ type Postulante = {
   ciudad?: string;
   disponibilidad_mudanza?: boolean;
   titulo_principal?: string;
-  nivel_estudio_id?: number | null;
   titulaciones?: string;
   resumen_profesional?: string;
   experiencia_anos?: number;
@@ -68,10 +68,9 @@ function Campo({
 export async function PostulanteForm({ postulante }: { postulante?: Postulante }) {
   const supabase = await createClient();
 
-  const [{ data: estados }, { data: selectores }, { data: niveles }, cvUrl] = await Promise.all([
+  const [{ data: estados }, { data: selectores }, cvUrl] = await Promise.all([
     supabase.from("estados_postulante").select("id, nombre").order("orden"),
     supabase.from("selectores").select("id, nombre, apellido").eq("estado", "activo").order("nombre"),
-    supabase.from("niveles_estudio").select("id, nombre").order("peso"),
     postulante?.cv_path ? urlVerCv(postulante.cv_path) : Promise.resolve(null),
   ]);
 
@@ -143,19 +142,6 @@ export async function PostulanteForm({ postulante }: { postulante?: Postulante }
             type="number"
             defaultValue={postulante?.experiencia_anos ?? 0}
           />
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">Nivel de estudio</span>
-            <select
-              name="nivel_estudio_id"
-              defaultValue={postulante?.nivel_estudio_id ?? ""}
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            >
-              <option value="">Sin especificar</option>
-              {(niveles ?? []).map((n) => (
-                <option key={n.id} value={n.id}>{n.nombre}</option>
-              ))}
-            </select>
-          </label>
           <div className="sm:col-span-2">
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-slate-700">Resumen profesional</span>
@@ -170,13 +156,13 @@ export async function PostulanteForm({ postulante }: { postulante?: Postulante }
         </div>
 
         <div className="mt-5">
-          <p className="mb-2 text-sm font-medium text-slate-700">Titulaciones (clic para agregar)</p>
-          <SkillsIndex name="titulaciones" catalogo={CATALOGO_TITULOS} defaultValue={postulante?.titulaciones ?? ""} />
+          <p className="mb-2 text-sm font-medium text-slate-700">Titulaciones <span className="font-normal text-slate-400">(elegí una o varias)</span></p>
+          <SelectorMultiple name="titulaciones" catalogo={CATALOGO_TITULOS} defaultValue={postulante?.titulaciones ?? ""} placeholder="Agregar título…" />
         </div>
 
         <div className="mt-5">
-          <p className="mb-2 text-sm font-medium text-slate-700">Idiomas (clic para agregar)</p>
-          <SkillsIndex name="idiomas" catalogo={CATALOGO_IDIOMAS} defaultValue={postulante?.idiomas ?? ""} />
+          <p className="mb-2 text-sm font-medium text-slate-700">Idiomas <span className="font-normal text-slate-400">(elegí uno o varios)</span></p>
+          <SelectorMultiple name="idiomas" opciones={IDIOMAS_COMUNES} defaultValue={postulante?.idiomas ?? ""} placeholder="Agregar idioma…" />
         </div>
 
         <div className="mt-5">

@@ -58,13 +58,6 @@ export const CATALOGO_SKILLS: { grupo: string; skills: string[] }[] = [
     ],
   },
   {
-    grupo: "Idiomas",
-    skills: [
-      "Inglés básico", "Inglés intermedio", "Inglés avanzado", "Portugués",
-      "Italiano", "Francés", "Alemán",
-    ],
-  },
-  {
     grupo: "Habilidades blandas",
     skills: [
       "Trabajo en equipo", "Liderazgo", "Comunicación", "Proactividad",

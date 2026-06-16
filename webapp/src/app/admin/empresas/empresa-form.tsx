@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { RUBROS } from "@/lib/rubros";
 import { guardarEmpresa } from "./actions";
 
 type Empresa = {
@@ -62,6 +63,13 @@ export async function EmpresaForm({ empresa }: { empresa?: Empresa }) {
   const supabase = await createClient();
   const { data: rubros } = await supabase.from("rubros").select("id, nombre").order("nombre");
 
+  // Opciones del combobox: catálogo del código + los que ya existan en la base.
+  const nombresDb = (rubros ?? []).map((r) => r.nombre);
+  const opcionesRubro = Array.from(new Set([...RUBROS, ...nombresDb])).sort((a, b) =>
+    a.localeCompare(b),
+  );
+  const rubroActual = (rubros ?? []).find((r) => r.id === empresa?.rubro_id)?.nombre ?? "";
+
   return (
     <form action={guardarEmpresa} className="space-y-8">
       {empresa?.id && <input type="hidden" name="id" value={empresa.id} />}
@@ -86,18 +94,20 @@ export async function EmpresaForm({ empresa }: { empresa?: Empresa }) {
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-700">Rubro / Sector</span>
-            <select
-              name="rubro_id"
-              defaultValue={empresa?.rubro_id ? String(empresa.rubro_id) : ""}
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            >
-              <option value="">-- Seleccionar rubro --</option>
-              {(rubros ?? []).map((r) => (
-                <option key={r.id} value={r.id}>{r.nombre}</option>
+            <input
+              name="rubro_nombre"
+              defaultValue={rubroActual}
+              list="lista-rubros"
+              placeholder="Elegí o escribí el rubro…"
+              autoComplete="off"
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+            <datalist id="lista-rubros">
+              {opcionesRubro.map((r) => (
+                <option key={r} value={r} />
               ))}
-            </select>
+            </datalist>
           </label>
-          <Campo label="…o nuevo rubro (se crea solo)" name="nuevo_rubro" />
           <Campo label="Sitio web" name="website" defaultValue={empresa?.website} />
         </div>
       </section>

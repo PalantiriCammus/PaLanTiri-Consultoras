@@ -17,12 +17,19 @@ const NIVELES = [
 ];
 
 // Educación mínima + Título requerido (multi-selección filtrada por el nivel).
+// Reutilizable: en postulante el título se guarda en "titulaciones".
 export function EducacionTitulos({
   defaultEducacion = "",
   defaultTitulos = "",
+  educacionName = "educacion_minima",
+  titulosName = "titulos_requeridos",
+  educacionLabel = "Educación mínima",
 }: {
   defaultEducacion?: string;
   defaultTitulos?: string;
+  educacionName?: string;
+  titulosName?: string;
+  educacionLabel?: string;
 }) {
   const listId = useId();
   const [educacion, setEducacion] = useState(defaultEducacion);
@@ -54,9 +61,9 @@ export function EducacionTitulos({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <label>
-        <span className="mb-1 block text-sm font-medium text-slate-700">Educación mínima</span>
+        <span className="mb-1 block text-sm font-medium text-slate-700">{educacionLabel}</span>
         <select
-          name="educacion_minima"
+          name={educacionName}
           value={educacion}
           onChange={(e) => setEducacion(e.target.value)}
           className={inputCls}
@@ -69,58 +76,64 @@ export function EducacionTitulos({
       </label>
 
       {/* hidden: siempre presente para que la acción lo lea */}
-      <input type="hidden" name="titulos_requeridos" value={titulos.join(", ")} />
+      <input type="hidden" name={titulosName} value={titulos.join(", ")} />
 
-      {mostrarTitulos && (
-        <div>
-          <span className="mb-1 block text-sm font-medium text-slate-700">
-            Título requerido <span className="font-normal text-slate-400">(podés elegir varios {nivelLabel})</span>
+      {/* El bloque de títulos se muestra SIEMPRE (así se ven y se pueden quitar
+          los ya cargados aunque el nivel no tenga catálogo); sólo el
+          autocompletado (datalist) depende de que haya opciones del nivel. */}
+      <div>
+        <span className="mb-1 block text-sm font-medium text-slate-700">
+          Título requerido{" "}
+          <span className="font-normal text-slate-400">
+            {mostrarTitulos ? `(podés elegir varios ${nivelLabel})` : "(elegí el nivel para sugerencias, o escribí uno)"}
           </span>
+        </span>
 
-          {titulos.length > 0 && (
-            <div className="mb-2 flex flex-wrap gap-1.5">
-              {titulos.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => quitar(t)}
-                  className="rounded-full bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700"
-                >
-                  {t} ✕
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <input
-              list={listId}
-              value={entrada}
-              onChange={(e) => setEntrada(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  agregar(entrada);
-                }
-              }}
-              placeholder="Elegí de la lista o escribí uno…"
-              className={inputCls}
-            />
-            <button
-              type="button"
-              onClick={() => agregar(entrada)}
-              className="shrink-0 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-            >
-              Agregar
-            </button>
+        {titulos.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {titulos.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => quitar(t)}
+                className="rounded-full bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700"
+              >
+                {t} ✕
+              </button>
+            ))}
           </div>
+        )}
+
+        <div className="flex gap-2">
+          <input
+            list={listId}
+            value={entrada}
+            onChange={(e) => setEntrada(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                agregar(entrada);
+              }
+            }}
+            placeholder="Elegí de la lista o escribí uno…"
+            className={inputCls}
+          />
+          <button
+            type="button"
+            onClick={() => agregar(entrada)}
+            className="shrink-0 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
+            Agregar
+          </button>
+        </div>
+        {mostrarTitulos && (
           <datalist id={listId}>
             {opciones.map((o) => (
               <option key={o} value={o} />
             ))}
           </datalist>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -4,7 +4,7 @@ export const MIGRACIONES_BUNDLE = `
 -- ============================================================
 -- BUNDLE DE MIGRACIONES - Plataforma Palantiri
 -- Pegar TODO esto en Supabase -> SQL Editor -> RUN (una sola vez,
--- en una base NUEVA y vacia). Incluye migraciones 0001 a 0010.
+-- en una base NUEVA y vacia). Incluye migraciones 0001 a 0011.
 -- ============================================================
 
 -- >>>>>>>>>>>>>>>>>>>>>>  0001_schema.sql  <<<<<<<<<<<<<<<<<<<<<<
@@ -1808,4 +1808,18 @@ update public.postulaciones set estado = 'oferta_laboral' where estado = 'oferta
 update public.postulaciones set estado = 'para_enviar_empresa' where estado = 'aceptada_postulante';
 update public.postulaciones set estado = 'rechazado_empresa' where estado = 'rechazada_empresa';
 update public.postulaciones set estado = 'rechazado_postulante' where estado = 'rechazada_postulante';
+
+
+
+-- >>>>>>>>>>>>>>>>>>>>>>  0011_idiomas_educacion.sql  <<<<<<<<<<<<<<<<<<<<<<
+-- ============================================================
+-- Migración 0011: Idiomas requeridos en la búsqueda
+-- ------------------------------------------------------------
+--  perfiles_busqueda.idiomas_requeridos: idiomas que pide la búsqueda
+--  (multi-selección por desplegable, separado por comas).
+-- Idempotente.
+-- ============================================================
+
+alter table public.perfiles_busqueda
+  add column if not exists idiomas_requeridos text not null default '';
 `;

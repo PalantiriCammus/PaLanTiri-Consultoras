@@ -5,6 +5,8 @@ import { guardarBusqueda } from "./actions";
 import { SkillsIndex } from "./skills-index";
 import { BeneficiosPerks } from "./beneficios-perks";
 import { EducacionTitulos } from "./educacion-titulos";
+import { SelectorMultiple } from "./selector-multiple";
+import { IDIOMAS_COMUNES } from "@/lib/idiomas";
 
 type Busqueda = {
   id?: number;
@@ -16,6 +18,7 @@ type Busqueda = {
   experiencia_minima_anios?: number;
   educacion_minima?: string;
   titulos_requeridos?: string;
+  idiomas_requeridos?: string;
   habilidades_requeridas?: string;
   es_remoto?: boolean;
   ubicacion_puesto?: string;
@@ -272,6 +275,8 @@ export async function BusquedaForm({ busqueda }: { busqueda?: Busqueda }) {
             defaultEducacion={busqueda?.educacion_minima ?? ""}
             defaultTitulos={busqueda?.titulos_requeridos ?? ""}
           />
+          <div><Label>Idiomas requeridos <span className="font-normal text-slate-400">(elegí uno o varios)</span></Label>
+            <SelectorMultiple name="idiomas_requeridos" opciones={IDIOMAS_COMUNES} defaultValue={busqueda?.idiomas_requeridos ?? ""} placeholder="Agregar idioma…" /></div>
           <label><Label>Horarios de descansos / breaks</Label>
             <input name="descansos" defaultValue={busqueda?.descansos ?? ""} placeholder="Ej: 10 min desayuno, 40 min almuerzo" className={inputCls} /></label>
           <div><Label>Beneficios y perks (uno por línea)</Label>

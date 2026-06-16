@@ -23,13 +23,13 @@ export async function guardarEmpresa(formData: FormData) {
 
   const id = val(formData, "id");
 
-  // Rubro: si se escribió uno nuevo, se crea (o reutiliza) en la tabla rubros.
-  let rubroId: string | number | null = nullable(formData, "rubro_id");
-  const nuevoRubro = val(formData, "nuevo_rubro");
-  if (nuevoRubro) {
+  // Rubro: se elige/escribe por nombre y se crea (o reutiliza) en la tabla rubros.
+  let rubroId: string | number | null = null;
+  const rubroNombre = val(formData, "rubro_nombre");
+  if (rubroNombre) {
     const { data: r } = await supabase
       .from("rubros")
-      .upsert({ nombre: nuevoRubro }, { onConflict: "nombre" })
+      .upsert({ nombre: rubroNombre }, { onConflict: "nombre" })
       .select("id")
       .single();
     if (r) rubroId = r.id;

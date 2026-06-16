@@ -67,12 +67,42 @@ export async function guardarPostulante(formData: FormData) {
     guardado_en_pool: formData.get("guardado_en_pool") === "on",
   };
 
+  let postulanteId: number;
   if (id) {
     const { error } = await supabase.from("postulantes").update(data).eq("id", id);
     if (error) throw new Error(error.message);
+    postulanteId = Number(id);
   } else {
-    const { error } = await supabase.from("postulantes").insert(data);
+    const { data: nuevo, error } = await supabase
+      .from("postulantes")
+      .insert(data)
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
+    postulanteId = nuevo.id;
+  }
+
+  // "Agregar a": si se eligió una búsqueda activa, crear la postulación
+  // (en estado inicial) salvo que ya exista. "pool" no crea postulación.
+  const destino = val(formData, "destino");
+  if (destino && destino !== "pool") {
+    const perfilBusquedaId = Number(destino);
+    const { data: existente } = await supabase
+      .from("postulaciones")
+      .select("id")
+      .eq("postulante_id", postulanteId)
+      .eq("perfil_busqueda_id", perfilBusquedaId)
+      .maybeSingle();
+
+    if (!existente) {
+      const { error } = await supabase.from("postulaciones").insert({
+        postulante_id: postulanteId,
+        perfil_busqueda_id: perfilBusquedaId,
+        selector_id: data.selector_id,
+        estado: "presentado_selector",
+      });
+      if (error) throw new Error(error.message);
+    }
   }
 
   revalidatePath("/admin/postulantes");

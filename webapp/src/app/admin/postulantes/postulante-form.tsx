@@ -68,9 +68,14 @@ function Campo({
 export async function PostulanteForm({ postulante }: { postulante?: Postulante }) {
   const supabase = await createClient();
 
-  const [{ data: estados }, { data: selectores }, cvUrl] = await Promise.all([
+  const [{ data: estados }, { data: selectores }, { data: busquedas }, cvUrl] = await Promise.all([
     supabase.from("estados_postulante").select("id, nombre").order("orden"),
     supabase.from("selectores").select("id, nombre, apellido").eq("estado", "activo").order("nombre"),
+    supabase
+      .from("perfiles_busqueda")
+      .select("id, titulo_puesto, empresas(nombre)")
+      .is("fecha_cierre", null)
+      .order("fecha_creacion", { ascending: false }),
     postulante?.cv_path ? urlVerCv(postulante.cv_path) : Promise.resolve(null),
   ]);
 
@@ -258,6 +263,28 @@ export async function PostulanteForm({ postulante }: { postulante?: Postulante }
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
           Gestión
         </h2>
+        <div className="mb-4">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-slate-700">
+              Agregar a <span className="font-normal text-slate-400">(búsqueda activa o base de talentos)</span>
+            </span>
+            <select
+              name="destino"
+              defaultValue="pool"
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            >
+              <option value="pool">💎 Base de talentos (sin postular a una búsqueda)</option>
+              {(busquedas ?? []).map((b) => {
+                const empresa = b.empresas as unknown as { nombre: string } | null;
+                return (
+                  <option key={b.id} value={b.id}>
+                    🔍 {b.titulo_puesto}{empresa?.nombre ? ` — ${empresa.nombre}` : ""}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-700">Estado</span>

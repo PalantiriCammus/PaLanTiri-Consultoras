@@ -12,6 +12,7 @@ se actualizan automáticamente con cada push a `main`).
 ```
 PARTE A — Supabase (a mano, en la cuenta del cliente)
   [ ] El cliente crea su cuenta + proyecto en Supabase
+  [ ] Organization → Team → Invite member: palantiriautomat@gmail.com como Administrator (acceso de soporte a la base, para correr migraciones sin loguearse como el cliente)
   [ ] SQL Editor → correr webapp/supabase/MIGRACIONES-BUNDLE.sql
   [ ] Crear admin del cliente (Auto Confirm) + SQL: rol = 'admin'
   [ ] Settings → API: copiar Project URL, anon key, service_role key
@@ -43,9 +44,13 @@ El detalle de cada parte está abajo.
 
 1. En [supabase.com/dashboard](https://supabase.com/dashboard) → **New project**.
    - Nombre: `consultora-<cliente>` · Región: South America (São Paulo) · Guardar la contraseña de la DB.
-2. **SQL Editor** → ejecutar **en orden** cada archivo de `webapp/supabase/migrations/`:
-   `0001_schema.sql` → `0002_rls.sql` → `0003_seed.sql` → `0004_storage.sql` → `0005_email_queue.sql` → `0006_configuracion_consultora.sql` → `0007_instancias_consultoras.sql` → `0008_admin_gestiona_usuarios.sql`
-3. **Settings → API**: copiar `Project URL`, `anon` key y `service_role` key (se usan en el paso 2).
+2. **SQL Editor** → lo más rápido: pegar todo `webapp/supabase/MIGRACIONES-BUNDLE.sql`
+   (trae las migraciones `0001` a `0009`). O una por una en orden.
+3. **Acceso de soporte para Palantiri (importante):** que el dueño de la base invite a
+   Palantiri como administrador → **Organization settings → Team → Invite member** →
+   `palantiriautomat@gmail.com` como **Administrator**. Así Palantiri puede administrar la
+   base y correr migraciones futuras **sin loguearse** como el cliente.
+4. **Settings → API**: copiar `Project URL`, `anon` key y `service_role` key (se usan en el paso 2).
 4. Crear el usuario **admin del cliente** (es `admin`, NO `super_admin` — el super_admin es Palantiri):
    **Authentication → Users → Add user → Create new user** (email + contraseña temporal,
    marcar *Auto Confirm User*). El UUID no hace falta copiarlo. Luego en SQL Editor:

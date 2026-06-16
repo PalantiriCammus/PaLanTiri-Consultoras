@@ -416,7 +416,11 @@ un script. Resumen del flujo en 3 partes:
 
 **PARTE A — Supabase (a mano, en la cuenta del cliente):**
 - El cliente crea su cuenta + proyecto en Supabase.
-- SQL Editor → correr `webapp/supabase/MIGRACIONES-BUNDLE.sql` (trae las 8 migraciones de una).
+- **Acceso de soporte:** que el dueño de la base invite a Palantiri →
+  **Organization settings → Team → Invite member** → `palantiriautomat@gmail.com`
+  como **Administrator**. Así Palantiri administra la base y corre migraciones futuras
+  sin loguearse como el cliente.
+- SQL Editor → correr `webapp/supabase/MIGRACIONES-BUNDLE.sql` (trae todas las migraciones de una).
 - Crear el admin del cliente (Auto Confirm) y en SQL: `update public.profiles set rol = 'admin' where email = '...';`
 - Settings → API: copiar Project URL, anon key y service_role key.
 - Attack Protection: activar CAPTCHA + pegar el Secret Key de Turnstile.

@@ -108,6 +108,28 @@ function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
     },
     {
       n: 2,
+      titulo: "Darte acceso a la base (invitar a Palantiri)",
+      resumen: "El dueño de la base invita a palantiriautomat como Administrator de su organización Supabase.",
+      contenido: (
+        <>
+          <p>
+            Para que <b>Palantiri</b> pueda administrar la base del cliente (correr migraciones,
+            hacer ajustes) <b>sin loguearse</b> como el cliente, el dueño de la base lo invita como miembro:
+          </p>
+          <ul className="ml-4 list-disc text-sm">
+            <li>Supabase → <b>Organization settings → Team → Invite member</b></li>
+            <li>Email: <code className="rounded bg-slate-100 px-1">palantiriautomat@gmail.com</code></li>
+            <li>Rol: <b>Administrator</b> (o Owner si querés control total)</li>
+          </ul>
+          <p className="text-xs text-slate-400">
+            Aceptás la invitación desde el mail de palantiriautomat. Así administrás la base desde el
+            dashboard del cliente sin sus credenciales — es lo que permite correr migraciones nuevas.
+          </p>
+        </>
+      ),
+    },
+    {
+      n: 3,
       titulo: "Crear el usuario admin del cliente",
       resumen: "Alta del usuario en Authentication + asignarle el rol admin por SQL.",
       contenido: (
@@ -135,7 +157,7 @@ function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
       ),
     },
     {
-      n: 3,
+      n: 4,
       titulo: "Tu acceso de super_admin (soporte)",
       resumen: "Creá tu usuario en esta base y dale rol super_admin para entrar de soporte.",
       contenido: (
@@ -159,7 +181,7 @@ function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
       ),
     },
     {
-      n: 4,
+      n: 5,
       titulo: "Activar el CAPTCHA en Supabase",
       resumen: "Authentication → Attack Protection → pegar la Secret Key de Turnstile.",
       contenido: (
@@ -188,7 +210,7 @@ function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
       ),
     },
     {
-      n: 5,
+      n: 6,
       titulo: "Agregar el dominio al widget de Cloudflare",
       resumen: `Sumar ${host} a los hostnames del widget Turnstile.`,
       contenido: (
@@ -211,7 +233,7 @@ function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
       ),
     },
     {
-      n: 6,
+      n: 7,
       titulo: "Google: nada 🎉",
       resumen: "No hay que tocar Google Cloud (callback único).",
       contenido: (
@@ -223,7 +245,7 @@ function GuiaPasos({ nombre, url }: { nombre: string; url: string }) {
       ),
     },
     {
-      n: 7,
+      n: 8,
       titulo: "Verificar que quedó todo bien",
       resumen: "Chequear /api/health y entrar al login.",
       contenido: (

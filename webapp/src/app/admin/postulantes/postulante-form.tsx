@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { urlVerCv } from "@/lib/storage/cv";
 import { SkillsIndex } from "@/app/admin/busquedas/skills-index";
 import { CATALOGO_TITULOS } from "@/lib/titulos";
+import { CATALOGO_IDIOMAS } from "@/lib/idiomas";
 import { guardarPostulante } from "./actions";
 
 type Postulante = {
@@ -155,7 +156,6 @@ export async function PostulanteForm({ postulante }: { postulante?: Postulante }
               ))}
             </select>
           </label>
-          <Campo label="Idiomas" name="idiomas" defaultValue={postulante?.idiomas} />
           <div className="sm:col-span-2">
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-slate-700">Resumen profesional</span>
@@ -172,6 +172,11 @@ export async function PostulanteForm({ postulante }: { postulante?: Postulante }
         <div className="mt-5">
           <p className="mb-2 text-sm font-medium text-slate-700">Titulaciones (clic para agregar)</p>
           <SkillsIndex name="titulaciones" catalogo={CATALOGO_TITULOS} defaultValue={postulante?.titulaciones ?? ""} />
+        </div>
+
+        <div className="mt-5">
+          <p className="mb-2 text-sm font-medium text-slate-700">Idiomas (clic para agregar)</p>
+          <SkillsIndex name="idiomas" catalogo={CATALOGO_IDIOMAS} defaultValue={postulante?.idiomas ?? ""} />
         </div>
 
         <div className="mt-5">

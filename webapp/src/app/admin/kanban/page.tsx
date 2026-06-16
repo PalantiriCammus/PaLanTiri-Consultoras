@@ -2,15 +2,16 @@ import { createClient } from "@/lib/supabase/server";
 import { moverPostulacion } from "./actions";
 
 const COLUMNAS: { estado: string; label: string; color: string }[] = [
-  { estado: "enviada", label: "Enviada", color: "#007aff" },
-  { estado: "recibida", label: "Recibida", color: "#5856d6" },
-  { estado: "entrevista", label: "Entrevista", color: "#af52de" },
-  { estado: "oferta", label: "Oferta", color: "#ff9500" },
-  { estado: "aceptada_postulante", label: "Aceptada", color: "#34c759" },
-  { estado: "contratado", label: "Contratado", color: "#30d158" },
-  { estado: "rechazada_empresa", label: "Rechazada (empresa)", color: "#ff3b30" },
-  { estado: "rechazada_postulante", label: "Rechazada (postulante)", color: "#ff3b30" },
-  { estado: "cancelada", label: "Cancelada", color: "#8e8e93" },
+  { estado: "presentado_selector", label: "1 Presentado Selector", color: "#007aff" },
+  { estado: "en_evaluacion", label: "2 En evaluación", color: "#5856d6" },
+  { estado: "para_enviar_empresa", label: "3 Para enviar a empresa", color: "#af52de" },
+  { estado: "enviado_empresa", label: "4 Enviado a Empresa", color: "#ff9500" },
+  { estado: "entrevistado_empresa", label: "5 Entrevistado por empresa", color: "#ff2d55" },
+  { estado: "rechazado_empresa", label: "6 Rechazado por Empresa", color: "#ff3b30" },
+  { estado: "rechazado_postulante", label: "7 Rechazado por postulante", color: "#a2845e" },
+  { estado: "oferta_laboral", label: "8 Oferta laboral realizada", color: "#ffcc00" },
+  { estado: "contratado", label: "9 Contratado", color: "#34c759" },
+  { estado: "cancelada", label: "10 Cancelada", color: "#8e8e93" },
 ];
 
 const ESTADOS_VALORES = COLUMNAS.map((c) => c.estado);

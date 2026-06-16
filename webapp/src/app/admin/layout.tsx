@@ -16,6 +16,7 @@ const NAV_STAFF: NavItem[] = [
   { href: "/admin/talentos", label: "Base de talentos", icon: "💎" },
   { href: "/admin/kanban", label: "Tablero Kanban", icon: "📋" },
   { href: "/admin/entrevistas", label: "Entrevistas", icon: "🗓️" },
+  { href: "/admin/presentar-postulantes", label: "Presentar Candidatos", icon: "📧" },
   { href: "/admin/comisiones", label: "Comisiones", icon: "💰" },
   { href: "/admin/garantias", label: "Garantías", icon: "🛡️" },
 ];

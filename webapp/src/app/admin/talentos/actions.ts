@@ -40,7 +40,7 @@ export async function presentarABusqueda(formData: FormData) {
     postulante_id: postulanteId,
     perfil_busqueda_id: perfilBusquedaId,
     selector_id: postulante?.selector_id ?? null,
-    estado: "enviada",
+    estado: "presentado_selector",
   });
   if (error) throw new Error(error.message);
 

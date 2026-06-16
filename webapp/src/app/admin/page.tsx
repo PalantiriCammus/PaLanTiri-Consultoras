@@ -47,11 +47,12 @@ export default async function AdminDashboard() {
       .from("postulaciones")
       .select("*", head)
       .in("estado", [
-        "enviada",
-        "recibida",
-        "entrevista",
-        "oferta",
-        "aceptada_postulante",
+        "presentado_selector",
+        "en_evaluacion",
+        "para_enviar_empresa",
+        "enviado_empresa",
+        "entrevistado_empresa",
+        "oferta_laboral",
       ]),
     supabase
       .from("seguimiento_garantia")

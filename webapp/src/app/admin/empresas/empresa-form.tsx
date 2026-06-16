@@ -88,7 +88,7 @@ export async function EmpresaForm({ empresa }: { empresa?: Empresa }) {
             <span className="font-medium text-slate-700">Rubro / Sector</span>
             <select
               name="rubro_id"
-              defaultValue={empresa?.rubro_id ?? ""}
+              defaultValue={empresa?.rubro_id ? String(empresa.rubro_id) : ""}
               className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             >
               <option value="">-- Seleccionar rubro --</option>

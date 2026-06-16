@@ -87,7 +87,7 @@ export async function cargarPostulante(formData: FormData) {
       postulante_id: postulanteId,
       perfil_busqueda_id: perfilBusquedaId,
       selector_id: selector.id,
-      estado: "enviada",
+      estado: "presentado_selector",
     });
     if (error) throw new Error(error.message);
   }

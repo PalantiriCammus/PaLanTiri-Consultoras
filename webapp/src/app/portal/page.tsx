@@ -37,11 +37,12 @@ export default async function PortalInicio() {
         .from("postulaciones")
         .select("*", { count: "exact", head: true })
         .in("estado", [
-          "enviada",
-          "recibida",
-          "entrevista",
-          "oferta",
-          "aceptada_postulante",
+          "presentado_selector",
+          "en_evaluacion",
+          "para_enviar_empresa",
+          "enviado_empresa",
+          "entrevistado_empresa",
+          "oferta_laboral",
         ]),
       supabase
         .from("comisiones")

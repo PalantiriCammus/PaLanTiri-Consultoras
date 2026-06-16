@@ -11,16 +11,16 @@ export async function moverPostulacion(formData: FormData) {
   const estado = (formData.get("estado") as string) ?? "";
 
   const fechaPorEstado: Record<string, string> = {
-    recibida: "fecha_recepcion_empresa",
-    entrevista: "fecha_primera_entrevista",
-    oferta: "fecha_oferta",
-    aceptada_postulante: "fecha_aceptacion_postulante",
+    enviado_empresa: "fecha_recepcion_empresa",
+    entrevistado_empresa: "fecha_primera_entrevista",
+    oferta_laboral: "fecha_oferta",
+    contratado: "fecha_aceptacion_postulante",
   };
 
   const data: Record<string, unknown> = { estado };
   const campoFecha = fechaPorEstado[estado];
   if (campoFecha) data[campoFecha] = new Date().toISOString();
-  if (estado === "contratado" || estado.startsWith("rechazada") || estado === "cancelada") {
+  if (estado === "contratado" || estado.startsWith("rechazado") || estado === "cancelada") {
     data.fecha_cierre = new Date().toISOString();
   }
 

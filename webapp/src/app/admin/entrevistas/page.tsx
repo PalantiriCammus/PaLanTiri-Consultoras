@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { googleConectado } from "@/lib/google/oauth";
-import { agendarEntrevista, registrarResultado, eliminarEntrevista } from "./actions";
+import { registrarResultado, eliminarEntrevista } from "./actions";
+import { AgendarForm } from "./agendar-form";
 
 const TIPO_LABEL: Record<string, string> = {
   seleccion: "Selección",
@@ -79,11 +80,22 @@ export default async function EntrevistasPage() {
       .order("fecha_hora", { ascending: true }),
     supabase
       .from("postulaciones")
-      .select("id, postulantes(nombre, apellido), perfiles_busqueda(titulo_puesto, empresas(nombre))")
-      .in("estado", ["enviada", "recibida", "entrevista", "oferta", "aceptada_postulante"])
+      .select("id, postulantes(nombre, apellido), perfiles_busqueda(id, titulo_puesto, empresas(id, nombre))")
+      .in("estado", [
+        "presentado_selector",
+        "en_evaluacion",
+        "para_enviar_empresa",
+        "enviado_empresa",
+        "entrevistado_empresa",
+        "oferta_laboral",
+      ])
       .order("fecha_envio", { ascending: false }),
     googleConectado(),
   ]);
+
+  const postulacionesParaFiltros = (postulacionesActivas ?? []) as unknown as Parameters<
+    typeof AgendarForm
+  >[0]["postulacionesActivas"];
 
   const todas = (entrevistas ?? []) as unknown as EntrevistaRow[];
   const ahora = Date.now();
@@ -103,121 +115,7 @@ export default async function EntrevistasPage() {
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
           Agendar entrevista
         </h2>
-        <form action={agendarEntrevista} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <label className="flex flex-col gap-1 text-sm sm:col-span-2 lg:col-span-3">
-            <span className="font-medium text-slate-700">Postulación</span>
-            <select
-              name="postulacion_id"
-              required
-              defaultValue=""
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            >
-              <option value="" disabled>
-                Seleccionar candidato y búsqueda
-              </option>
-              {(postulacionesActivas ?? []).map((p) => {
-                const candidato = p.postulantes as unknown as { nombre: string; apellido: string } | null;
-                const perfil = p.perfiles_busqueda as unknown as {
-                  titulo_puesto: string;
-                  empresas: { nombre: string } | null;
-                } | null;
-                return (
-                  <option key={p.id} value={p.id}>
-                    {candidato ? `${candidato.nombre} ${candidato.apellido}` : "?"} →{" "}
-                    {perfil?.titulo_puesto ?? "?"}
-                    {perfil?.empresas ? ` (${perfil.empresas.nombre})` : ""}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">Tipo</span>
-            <select
-              name="tipo"
-              defaultValue="seleccion"
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            >
-              {Object.entries(TIPO_LABEL).map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">Fecha y hora</span>
-            <input
-              type="datetime-local"
-              name="fecha_hora"
-              required
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">Duración (minutos)</span>
-            <input
-              type="number"
-              name="duracion_minutos"
-              defaultValue={60}
-              min={15}
-              step={15}
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">Entrevistador</span>
-            <input
-              type="text"
-              name="entrevistador"
-              placeholder="Nombre o email"
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">Link de Google Meet (opcional)</span>
-            <input
-              type="url"
-              name="google_meet_url"
-              placeholder={hayGoogle ? "Dejar vacío para generarlo automático" : "https://meet.google.com/..."}
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">Ubicación (si es presencial)</span>
-            <input
-              type="text"
-              name="ubicacion"
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            />
-          </label>
-          <div className="flex flex-wrap items-center gap-4 sm:col-span-2 lg:col-span-3">
-            {hayGoogle ? (
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="crear_meet"
-                  defaultChecked
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="font-medium text-slate-700">
-                  Crear evento en Google Calendar con Meet e invitar por email
-                </span>
-              </label>
-            ) : (
-              <p className="text-xs text-slate-400">
-                💡 Conectá Google en Configuración para crear el evento de Calendar y el Meet automáticamente.
-              </p>
-            )}
-            <button
-              type="submit"
-              className="ml-auto rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
-            >
-              Agendar entrevista
-            </button>
-          </div>
-        </form>
+        <AgendarForm postulacionesActivas={postulacionesParaFiltros} hayGoogle={hayGoogle} />
       </section>
 
       {/* Próximas */}

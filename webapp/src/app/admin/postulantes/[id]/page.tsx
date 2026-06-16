@@ -4,14 +4,15 @@ import { PostulanteForm } from "../postulante-form";
 import { agregarNota, eliminarNota } from "../actions";
 
 const ESTADO_POSTULACION_COLOR: Record<string, string> = {
-  enviada: "bg-slate-100 text-slate-600",
-  recibida: "bg-sky-100 text-sky-700",
-  entrevista: "bg-blue-100 text-blue-700",
-  oferta: "bg-violet-100 text-violet-700",
-  aceptada_postulante: "bg-amber-100 text-amber-700",
+  presentado_selector: "bg-slate-100 text-slate-600",
+  en_evaluacion: "bg-indigo-100 text-indigo-700",
+  para_enviar_empresa: "bg-violet-100 text-violet-700",
+  enviado_empresa: "bg-sky-100 text-sky-700",
+  entrevistado_empresa: "bg-blue-100 text-blue-700",
+  oferta_laboral: "bg-amber-100 text-amber-700",
   contratado: "bg-emerald-100 text-emerald-700",
-  rechazada_empresa: "bg-rose-100 text-rose-700",
-  rechazada_postulante: "bg-rose-100 text-rose-700",
+  rechazado_empresa: "bg-rose-100 text-rose-700",
+  rechazado_postulante: "bg-rose-100 text-rose-700",
   cancelada: "bg-slate-100 text-slate-500",
 };
 

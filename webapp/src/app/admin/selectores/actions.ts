@@ -26,7 +26,6 @@ export async function guardarSelector(formData: FormData) {
     telefono: val(formData, "telefono"),
     especializacion: val(formData, "especializacion") || "general",
     experiencia_anos: Number(val(formData, "experiencia_anos") || "0"),
-    alias_publico: nullable(formData, "alias_publico"),
     descripcion_perfil: val(formData, "descripcion_perfil"),
     pais: val(formData, "pais") || "Argentina",
     provincia: val(formData, "provincia"),
@@ -48,6 +47,8 @@ export async function guardarSelector(formData: FormData) {
       .update({ ...data, profile_id: profileId })
       .eq("id", id);
     if (error) throw new Error(error.message);
+
+    await sincronizarGrupos(supabase, Number(id), val(formData, "grupos"));
   } else {
     const { data: nuevo, error } = await supabase
       .from("selectores")
@@ -56,11 +57,48 @@ export async function guardarSelector(formData: FormData) {
       .single();
     if (error) throw new Error(error.message);
 
+    await sincronizarGrupos(supabase, nuevo.id, val(formData, "grupos"));
     await invitarUsuarioSelector(nuevo.id, data.email, data.nombre, data.apellido);
   }
 
   revalidatePath("/admin/selectores");
   redirect("/admin/selectores");
+}
+
+// Sincroniza la pertenencia del selector a los grupos elegidos (lista de
+// nombres separada por coma). Crea los grupos que no existan y reconcilia
+// la tabla puente selector_grupos (borra los que ya no están, agrega los nuevos).
+async function sincronizarGrupos(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  selectorId: number,
+  nombresCsv: string
+) {
+  const nombres = Array.from(
+    new Set(
+      nombresCsv
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    )
+  );
+
+  const ids: number[] = [];
+  for (const nombre of nombres) {
+    const { data: grupo } = await supabase
+      .from("grupos_selector")
+      .upsert({ nombre }, { onConflict: "nombre" })
+      .select("id")
+      .single();
+    if (grupo) ids.push(grupo.id);
+  }
+
+  // Reconciliar: limpiar pertenencias previas y volver a insertar el set actual.
+  await supabase.from("selector_grupos").delete().eq("selector_id", selectorId);
+  if (ids.length > 0) {
+    await supabase
+      .from("selector_grupos")
+      .insert(ids.map((grupo_id) => ({ selector_id: selectorId, grupo_id })));
+  }
 }
 
 // Crea (o reutiliza) la cuenta de usuario asociada a un selector recién

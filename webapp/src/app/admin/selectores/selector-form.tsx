@@ -1,3 +1,5 @@
+import { createClient } from "@/lib/supabase/server";
+import { SelectorMultiple } from "@/app/admin/busquedas/selector-multiple";
 import { guardarSelector } from "./actions";
 
 type Selector = {
@@ -8,7 +10,6 @@ type Selector = {
   telefono?: string;
   especializacion?: string;
   experiencia_anos?: number;
-  alias_publico?: string | null;
   descripcion_perfil?: string;
   pais?: string;
   provincia?: string;
@@ -58,7 +59,25 @@ function Campo({
   );
 }
 
-export function SelectorForm({ selector, usuarios = [] }: { selector?: Selector; usuarios?: Usuario[] }) {
+export async function SelectorForm({ selector, usuarios = [] }: { selector?: Selector; usuarios?: Usuario[] }) {
+  const supabase = await createClient();
+  const { data: gruposData } = await supabase
+    .from("grupos_selector")
+    .select("nombre")
+    .order("nombre");
+  const grupos = (gruposData ?? []).map((g) => g.nombre);
+
+  let gruposActuales: string[] = [];
+  if (selector?.id) {
+    const { data: mg } = await supabase
+      .from("selector_grupos")
+      .select("grupos_selector(nombre)")
+      .eq("selector_id", selector.id);
+    gruposActuales = (mg ?? [])
+      .map((r) => (r.grupos_selector as unknown as { nombre: string } | null)?.nombre)
+      .filter((n): n is string => Boolean(n));
+  }
+
   return (
     <form action={guardarSelector} className="space-y-8">
       {selector?.id && <input type="hidden" name="id" value={selector.id} />}
@@ -101,7 +120,17 @@ export function SelectorForm({ selector, usuarios = [] }: { selector?: Selector;
             type="number"
             defaultValue={selector?.experiencia_anos ?? 0}
           />
-          <Campo label="Alias público" name="alias_publico" defaultValue={selector?.alias_publico} />
+          <div className="sm:col-span-2">
+            <span className="mb-1 block text-sm font-medium text-slate-700">
+              Grupo de selectores <span className="font-normal text-slate-400">(elegí uno o varios, o escribí uno nuevo)</span>
+            </span>
+            <SelectorMultiple
+              name="grupos"
+              opciones={grupos}
+              defaultValue={gruposActuales.join(", ")}
+              placeholder="Agregar a un grupo…"
+            />
+          </div>
           <div className="sm:col-span-2">
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-slate-700">Descripción de perfil</span>

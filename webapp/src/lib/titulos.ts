@@ -99,6 +99,13 @@ export const TITULOS_POSGRADO: string[] = [
   "Doctorado",
 ];
 
+// Catálogo agrupado (para el Index clickeable de titulaciones del postulante).
+export const CATALOGO_TITULOS: { grupo: string; skills: string[] }[] = [
+  { grupo: "Terciarios", skills: TITULOS_TERCIARIOS },
+  { grupo: "Universitarios", skills: TITULOS_UNIVERSITARIOS },
+  { grupo: "Posgrados / Maestrías", skills: TITULOS_POSGRADO },
+];
+
 // Devuelve la lista de títulos según el nivel de educación elegido.
 export function titulosPorEducacion(educacion: string): string[] {
   const e = educacion.toLowerCase();

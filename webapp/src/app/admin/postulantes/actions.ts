@@ -49,6 +49,8 @@ export async function guardarPostulante(formData: FormData) {
     ciudad: val(formData, "ciudad"),
     disponibilidad_mudanza: formData.get("disponibilidad_mudanza") === "on",
     titulo_principal: val(formData, "titulo_principal"),
+    nivel_estudio_id: nullableNum(formData, "nivel_estudio_id"),
+    titulaciones: val(formData, "titulaciones"),
     resumen_profesional: val(formData, "resumen_profesional"),
     experiencia_anos: Number(val(formData, "experiencia_anos") || "0"),
     habilidades: val(formData, "habilidades"),

@@ -3,9 +3,17 @@
 import { useState } from "react";
 import { CATALOGO_SKILLS } from "@/lib/skills";
 
-// Índice de skills clickeable. Mantiene el set de seleccionadas y las vuelca en
-// un input hidden (habilidades_requeridas), separadas por coma — igual que la app vieja.
-export function SkillsIndex({ defaultValue = "" }: { defaultValue?: string }) {
+// Índice clickeable reutilizable (skills, títulos, etc.). Mantiene el set de
+// seleccionados y los vuelca en un input hidden (separados por coma).
+export function SkillsIndex({
+  defaultValue = "",
+  name = "habilidades_requeridas",
+  catalogo = CATALOGO_SKILLS,
+}: {
+  defaultValue?: string;
+  name?: string;
+  catalogo?: { grupo: string; skills: string[] }[];
+}) {
   const inicial = defaultValue
     .split(",")
     .map((s) => s.trim())
@@ -25,7 +33,7 @@ export function SkillsIndex({ defaultValue = "" }: { defaultValue?: string }) {
 
   return (
     <div>
-      <input type="hidden" name="habilidades_requeridas" value={lista.join(", ")} />
+      <input type="hidden" name={name} value={lista.join(", ")} />
 
       {lista.length > 0 && (
         <div className="mb-3 rounded-xl border border-indigo-200 bg-indigo-50/50 p-3">
@@ -48,7 +56,7 @@ export function SkillsIndex({ defaultValue = "" }: { defaultValue?: string }) {
       )}
 
       <div className="space-y-3">
-        {CATALOGO_SKILLS.map((cat) => (
+        {catalogo.map((cat) => (
           <div key={cat.grupo}>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
               {cat.grupo}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { construirCopyFlyer } from "@/lib/flyer-copy";
 import { guardarFlyerGenerado } from "./actions";
 
 const inputCls =
@@ -78,6 +79,27 @@ export function FlyerGenerador({
 
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [copiado, setCopiado] = useState(false);
+
+  // Texto "copy" listo para copiar/pegar (WhatsApp, Instagram, etc.).
+  const copyText = construirCopyFlyer({
+    titulo: title,
+    puesto,
+    bullets: [bullet1, bullet2, bullet3],
+    ubicacion: location,
+    jornada: schedule,
+    marca: [brandMain, brandSub].filter(Boolean).join(" — "),
+  });
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(copyText);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      setMensaje("No se pudo copiar automáticamente; seleccioná el texto y copialo a mano.");
+    }
+  }
 
   const dibujar = useCallback(() => {
     const canvas = canvasRef.current;
@@ -336,6 +358,29 @@ export function FlyerGenerador({
             Descargar imagen
           </button>
           {mensaje && <span className="text-xs text-slate-600">{mensaje}</span>}
+        </div>
+
+        {/* Texto copy listo para copiar/pegar */}
+        <div className="border-t border-slate-100 pt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-700">
+              Texto para copiar <span className="font-normal text-slate-400">(para flyers propios, redes, etc.)</span>
+            </span>
+            <button
+              type="button"
+              onClick={copiar}
+              className="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50"
+            >
+              {copiado ? "✓ Copiado" : "Copiar texto"}
+            </button>
+          </div>
+          <textarea
+            readOnly
+            value={copyText}
+            rows={8}
+            onFocus={(e) => e.currentTarget.select()}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700 outline-none"
+          />
         </div>
       </div>
 

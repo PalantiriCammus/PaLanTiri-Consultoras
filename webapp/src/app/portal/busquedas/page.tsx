@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { getSelectorActual } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getConsultora } from "@/lib/consultora";
 import { urlPublicaFlyer } from "@/lib/storage/flyer";
+import { construirCopyFlyer } from "@/lib/flyer-copy";
+import { CopyTexto } from "@/components/copy-texto";
 import { responderAsignacion } from "./actions";
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -25,13 +28,16 @@ export default async function PortalBusquedasPage() {
   if (!selector) return null;
 
   const supabase = await createClient();
-  const { data: asignaciones } = await supabase
-    .from("asignaciones_busqueda")
-    .select(
-      "id, estado, fecha_limite_entrega, cantidad_postulantes_esperados, cantidad_postulantes_enviados, cantidad_contratados, perfiles_busqueda(id, titulo_puesto, nivel, areas, ubicacion_puesto, es_remoto, flyer_imagen_path, empresas(nombre))"
-    )
-    .eq("selector_id", selector.id)
-    .order("fecha_asignacion", { ascending: false });
+  const [{ data: asignaciones }, consultora] = await Promise.all([
+    supabase
+      .from("asignaciones_busqueda")
+      .select(
+        "id, estado, fecha_limite_entrega, cantidad_postulantes_esperados, cantidad_postulantes_enviados, cantidad_contratados, perfiles_busqueda(id, titulo_puesto, nivel, areas, ubicacion_puesto, es_remoto, jornada_laboral, requisitos_excluyentes, requisitos_deseables, flyer_imagen_path, empresas(nombre))"
+      )
+      .eq("selector_id", selector.id)
+      .order("fecha_asignacion", { ascending: false }),
+    getConsultora(),
+  ]);
 
   return (
     <div>
@@ -49,9 +55,25 @@ export default async function PortalBusquedasPage() {
             areas: string;
             ubicacion_puesto: string;
             es_remoto: boolean;
+            jornada_laboral: string | null;
+            requisitos_excluyentes: string | null;
+            requisitos_deseables: string | null;
             flyer_imagen_path: string | null;
             empresas: { nombre: string } | null;
           } | null;
+
+          const bullets = (perfil?.requisitos_excluyentes || perfil?.requisitos_deseables || "")
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .slice(0, 3);
+          const copyText = construirCopyFlyer({
+            puesto: perfil?.titulo_puesto ?? "",
+            bullets,
+            ubicacion: perfil?.es_remoto ? "Remoto" : perfil?.ubicacion_puesto || "",
+            jornada: perfil?.jornada_laboral || "",
+            marca: consultora.nombre,
+          });
 
           return (
             <div key={a.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -81,6 +103,8 @@ export default async function PortalBusquedasPage() {
                 <p>Esperados: {a.cantidad_postulantes_esperados}</p>
                 <p>Enviados: {a.cantidad_postulantes_enviados}</p>
               </div>
+
+              <CopyTexto texto={copyText} label="Texto para flyer / redes (copiar y pegar)" />
 
               <div className="mt-4 flex flex-wrap gap-2">
                 {a.estado === "nueva" && (

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { notificarEvento } from "@/lib/email/queue";
-import { subirFlyer } from "@/lib/storage/flyer";
+import { subirFlyer, subirFlyerDataUrl, urlPublicaFlyer } from "@/lib/storage/flyer";
 
 function val(formData: FormData, key: string): string {
   return (formData.get(key) as string | null)?.trim() ?? "";
@@ -88,6 +88,20 @@ export async function guardarBusqueda(formData: FormData) {
 
   revalidatePath("/admin/busquedas");
   redirect("/admin/busquedas");
+}
+
+// Guarda en la búsqueda el flyer generado en el canvas (data URL base64).
+export async function guardarFlyerGenerado(busquedaId: number, dataUrl: string) {
+  const supabase = await createClient();
+  const ruta = await subirFlyerDataUrl(dataUrl);
+  const { error } = await supabase
+    .from("perfiles_busqueda")
+    .update({ flyer_imagen_path: ruta })
+    .eq("id", busquedaId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/busquedas/${busquedaId}`);
+  return { ok: true, url: urlPublicaFlyer(ruta) };
 }
 
 export async function eliminarBusqueda(formData: FormData) {

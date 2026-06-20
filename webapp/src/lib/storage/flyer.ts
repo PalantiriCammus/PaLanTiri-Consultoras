@@ -21,6 +21,24 @@ export async function subirFlyer(archivo: File, carpeta = "busquedas"): Promise<
   return ruta;
 }
 
+// Sube un flyer generado en el canvas (data URL base64) al bucket "flyers".
+export async function subirFlyerDataUrl(dataUrl: string, carpeta = "busquedas"): Promise<string> {
+  const match = dataUrl.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
+  if (!match) throw new Error("Formato de imagen inválido.");
+  const tipo = match[1];
+  const extension = tipo === "jpeg" ? "jpg" : tipo;
+  const buffer = Buffer.from(match[2], "base64");
+
+  const ruta = `${carpeta}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extension}`;
+  const admin = createAdminClient();
+  const { error } = await admin.storage.from("flyers").upload(ruta, buffer, {
+    contentType: `image/${tipo}`,
+  });
+  if (error) throw new Error(`No se pudo subir el flyer: ${error.message}`);
+
+  return ruta;
+}
+
 // El bucket es público: la URL se arma directo, sin firma.
 export function urlPublicaFlyer(ruta: string): string {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/flyers/${ruta}`;

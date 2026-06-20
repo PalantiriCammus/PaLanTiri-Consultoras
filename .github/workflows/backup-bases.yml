@@ -29,6 +29,10 @@ jobs:
         instancia:
           - nombre: palantiri
             secreto: SUPABASE_DB_URL_PALANTIRI
+          - nombre: confiarh
+            secreto: SUPABASE_DB_URL_CONFIARH
+          - nombre: suenos
+            secreto: SUPABASE_DB_URL_SUENOS
     steps:
       - name: Instalar cliente PostgreSQL 17
         run: |
@@ -43,8 +47,8 @@ jobs:
           PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           if [ -z "$DB_URL" ]; then
-            echo "::error::Falta el secret ${{ matrix.instancia.secreto }}"
-            exit 1
+            echo "::warning::Falta el secret ${{ matrix.instancia.secreto }}; se omite el backup de ${{ matrix.instancia.nombre }}."
+            exit 0
           fi
           if [ -z "$PASSPHRASE" ]; then
             echo "::error::Falta el secret BACKUP_PASSPHRASE"

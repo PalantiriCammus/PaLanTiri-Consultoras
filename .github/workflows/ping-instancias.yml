@@ -21,6 +21,10 @@ jobs:
         instancia:
           - nombre: palantiri
             url: https://pa-lan-tiri-consultoras.vercel.app
+          - nombre: confiarh
+            url: https://pa-lan-tiri-consultoras-confiarh.vercel.app
+          - nombre: suenos
+            url: https://consultora-sue-os.vercel.app
     steps:
       - name: Ping /api/health de ${{ matrix.instancia.nombre }}
         run: |

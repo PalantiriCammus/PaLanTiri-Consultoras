@@ -28,6 +28,7 @@ PARTE C — Cierre (a mano, rápido)
   [ ] Cloudflare Turnstile: agregar el hostname <nombre>.vercel.app al widget
   [ ] Google: NADA (callback único ya configurado) 🎉
   [ ] Consola Palantiri: registrar la instancia con su URL
+  [ ] Respaldo automático (sección 9): agregar la instancia a los 2 workflows + crear su secret SUPABASE_DB_URL_<NOMBRE>
   [ ] Verificar https://<nombre>.vercel.app/api/health → status: ok
 ```
 
@@ -45,7 +46,7 @@ El detalle de cada parte está abajo.
 1. En [supabase.com/dashboard](https://supabase.com/dashboard) → **New project**.
    - Nombre: `consultora-<cliente>` · Región: South America (São Paulo) · Guardar la contraseña de la DB.
 2. **SQL Editor** → lo más rápido: pegar todo `webapp/supabase/MIGRACIONES-BUNDLE.sql`
-   (trae las migraciones `0001` a `0009`). O una por una en orden.
+   (trae las migraciones `0001` a `0011`). O una por una en orden.
 3. **Acceso de soporte para Palantiri (importante):** que el dueño de la base invite a
    Palantiri como administrador → **Organization settings → Team → Invite member** →
    `palantiriautomat@gmail.com` como **Administrator**. Así Palantiri puede administrar la
@@ -141,6 +142,41 @@ central (la de la instancia madre, ya registrada). El cliente solo tiene que:
 En **tu** instancia de Palantiri → **Consola Palantiri** → Registrar
 consultora (nombre + `https://dominio-del-cliente.com`). Desde ahí monitoreás
 estado, versión y servicios de la instancia.
+
+## 9. Respaldo automático (anti-pausa + backup nocturno) — OBLIGATORIO
+
+Toda instancia nueva debe sumarse a los dos workflows de GitHub Actions del repo
+`PalantiriCammus/PaLanTiri-Consultoras` (carpeta `.github/workflows/`). Usá un
+identificador corto sin espacios ni acentos como `<nombre>` (ej. `confiarh`, `suenos`).
+
+**a) Ping anti-pausa** — `ping-instancias.yml` → agregar a `matrix.instancia`:
+```yaml
+- nombre: <nombre>
+  url: https://<dominio-real-de-la-instancia>
+```
+(No necesita secret; usa la URL pública de `/api/health`.)
+
+**b) Backup nocturno** — `backup-bases.yml` → agregar a `matrix.instancia`:
+```yaml
+- nombre: <nombre>
+  secreto: SUPABASE_DB_URL_<NOMBRE_EN_MAYUSCULAS>
+```
+
+**c) Crear el secret con el connection string de la base:**
+1. Supabase (de esa instancia) → botón **Connect** → pestaña **Direct / Connection string**.
+2. Connection Method = **Session pooler** (NO "Direct connection": usa IPv6 y falla
+   desde GitHub Actions). Type = **URI**.
+3. Copiar el URI (`...pooler.supabase.com:5432/postgres`) y reemplazar
+   `[YOUR-PASSWORD]` por la contraseña real de la base.
+4. GitHub → repo → **Settings → Secrets and variables → Actions → New repository secret**:
+   nombre `SUPABASE_DB_URL_<NOMBRE>`, valor el URI completo.
+5. (Una sola vez para todo) tiene que existir el secret `BACKUP_PASSPHRASE`.
+
+**d) Probar:** Actions → "Backup nocturno de bases" → **Run workflow**. Debe quedar en
+verde y dejar el artefacto `backup-<nombre>-...`. Si una base no tiene su secret, el
+workflow la **omite con un aviso** (no falla).
+
+> Restaurar un backup: `gpg -d backup-xxx.sql.gz.gpg | gunzip | psql "<connection-string-destino>"`
 
 ## Verificación final
 

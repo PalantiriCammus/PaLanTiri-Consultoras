@@ -54,7 +54,7 @@ export function FlyerGenerador({
   jornadaInicial = "",
   marcaInicial = "",
 }: {
-  busquedaId?: number;
+  busquedaId: number;
   puestoInicial?: string;
   bulletsIniciales?: string[];
   ubicacionInicial?: string;
@@ -234,7 +234,7 @@ export function FlyerGenerador({
 
   async function guardar() {
     const canvas = canvasRef.current;
-    if (!canvas || !busquedaId) return;
+    if (!canvas) return;
     setGuardando(true);
     setMensaje("");
     try {
@@ -320,20 +320,14 @@ export function FlyerGenerador({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
-          {busquedaId ? (
-            <button
-              type="button"
-              onClick={guardar}
-              disabled={guardando}
-              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {guardando ? "Guardando…" : "Guardar en la búsqueda"}
-            </button>
-          ) : (
-            <span className="text-xs text-slate-400">
-              Guardá la búsqueda primero para poder adjuntarle el flyer; por ahora podés descargarlo.
-            </span>
-          )}
+          <button
+            type="button"
+            onClick={guardar}
+            disabled={guardando}
+            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {guardando ? "Guardando…" : "Guardar en la búsqueda"}
+          </button>
           <button
             type="button"
             onClick={descargar}

@@ -1,0 +1,587 @@
+<!-- templates/empresas.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="animate-fade">
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+            <h1 class="page-title">Directorio de Empresas</h1>
+            <p class="page-subtitle">Gestiona tus clientes y sus condiciones comerciales.</p>
+        </div>
+        <button class="btn btn-primary" onclick="toggleModal('modalNuevaEmpresa')">
+            <i data-lucide="plus" style="width: 18px;"></i>
+            Nueva Empresa
+        </button>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Total Empresas</div>
+                <div class="stat-icon blue">
+                    <i data-lucide="building-2" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ total_empresas }}</div>
+            <div class="stat-trend">Registradas en el sistema</div>
+        </div>
+        
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Clientes Activos</div>
+                <div class="stat-icon green">
+                    <i data-lucide="check-circle" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ empresas_activas }}</div>
+            <div class="stat-trend"><span class="trend-up">Operando</span> actualmente</div>
+        </div>
+
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Rubros Registrados</div>
+                <div class="stat-icon orange">
+                    <i data-lucide="tag" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ rubros.count }}</div>
+            <div class="stat-trend">Sectores económicos</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="card">
+        <div class="section-header">
+            <h2 class="section-title">Listado de Empresas</h2>
+            <div class="search-box" style="width: 250px;">
+                <i data-lucide="filter"></i>
+                <input type="text" placeholder="Filtrar empresa...">
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>Contacto Comercial</th>
+                        <th>Contacto de RRHH</th>
+                        <th>Ubicación</th>
+                        <th>Comisión / Mod.</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in empresas %}
+                    <tr ondblclick="abrirEditarModal('{{ empresa.id }}', '{{ empresa.nombre|escapejs }}', '{{ empresa.email_principal|escapejs }}', '{{ empresa.telefono|escapejs }}', '{{ empresa.provincia|escapejs }}', '{{ empresa.ciudad|escapejs }}', '{{ empresa.direccion|escapejs }}', '{{ empresa.codigo_postal|escapejs }}', '{{ empresa.rubro.id|default:'' }}', '{{ empresa.contacto_nombre|escapejs }}', '{{ empresa.contacto_puesto|escapejs }}', '{{ empresa.contacto_telefono|escapejs }}', '{{ empresa.contacto_email|escapejs }}', '{{ empresa.contacto_comercial_nombre|escapejs }}', '{{ empresa.contacto_comercial_cargo|escapejs }}', '{{ empresa.contacto_comercial_telefono|escapejs }}', '{{ empresa.contacto_comercial_email|escapejs }}', '{{ empresa.modalidad_contratacion|escapejs }}', '{{ empresa.garantia|escapejs }}', '{{ empresa.comision_porcentaje|escapejs }}', '{{ empresa.activa|yesno:'true,false' }}', true)" style="cursor: pointer;" title="Doble clic para ver detalle o editar">
+                        <td style="font-weight: 500; color: var(--text-main);">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--bg-main); display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--primary); flex-shrink: 0;">
+                                    {{ empresa.nombre|first|upper }}
+                                </div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span>{{ empresa.nombre }}</span>
+                                    {% if empresa.rubro %}
+                                        <span style="font-size: 0.75rem; color: var(--text-dim); display: inline-flex; align-items: center; gap: 0.25rem; margin-top: 0.1rem;">
+                                            <i data-lucide="tag" style="width: 10px; height: 10px;"></i>
+                                            {{ empresa.rubro.nombre }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if empresa.contacto_comercial_nombre %}
+                                <div>{{ empresa.contacto_comercial_nombre }}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-dim);">
+                                    {{ empresa.contacto_comercial_cargo }} | {{ empresa.contacto_comercial_email }}
+                                </div>
+                            {% else %}
+                                <span style="font-size: 0.85rem; color: var(--text-light); italic;">Sin definir</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>{{ empresa.contacto_nombre }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-dim);">
+                                {% if empresa.contacto_puesto %}{{ empresa.contacto_puesto }} | {% endif %}{{ empresa.contacto_email }}
+                            </div>
+                        </td>
+                        <td>
+                            <div>{{ empresa.ciudad }}, {{ empresa.provincia }}</div>
+                            {% if empresa.direccion %}
+                                <div style="font-size: 0.75rem; color: var(--text-dim);">
+                                    {{ empresa.direccion }}{% if empresa.codigo_postal %} (CP {{ empresa.codigo_postal }}){% endif %}
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="font-weight: 500;">{{ empresa.comision_porcentaje }}%</div>
+                            <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: capitalize;">
+                                {{ empresa.get_modalidad_contratacion_display }} | {{ empresa.get_garantia_display }}
+                            </div>
+                        </td>
+                        <td>
+                            {% if empresa.activa %}
+                                <span class="badge badge-green">Activa</span>
+                            {% else %}
+                                <span class="badge badge-red">Inactiva</span>
+                            {% endif %}
+                        </td>
+                        <td style="display: flex; gap: 0.5rem; align-items: center; border: none;">
+                            <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.25rem;" onclick="abrirEditarModal('{{ empresa.id }}', '{{ empresa.nombre|escapejs }}', '{{ empresa.email_principal|escapejs }}', '{{ empresa.telefono|escapejs }}', '{{ empresa.provincia|escapejs }}', '{{ empresa.ciudad|escapejs }}', '{{ empresa.direccion|escapejs }}', '{{ empresa.codigo_postal|escapejs }}', '{{ empresa.rubro.id|default:'' }}', '{{ empresa.contacto_nombre|escapejs }}', '{{ empresa.contacto_puesto|escapejs }}', '{{ empresa.contacto_telefono|escapejs }}', '{{ empresa.contacto_email|escapejs }}', '{{ empresa.contacto_comercial_nombre|escapejs }}', '{{ empresa.contacto_comercial_cargo|escapejs }}', '{{ empresa.contacto_comercial_telefono|escapejs }}', '{{ empresa.contacto_comercial_email|escapejs }}', '{{ empresa.modalidad_contratacion|escapejs }}', '{{ empresa.garantia|escapejs }}', '{{ empresa.comision_porcentaje|escapejs }}', '{{ empresa.activa|yesno:'true,false' }}', false)">
+                                <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
+                                Editar
+                            </button>
+                            <form method="POST" action="{% url 'eliminar_empresa' empresa.id %}" style="display: inline;" onsubmit="return confirm('¿Estás completamente seguro de que deseas eliminar permanentemente la empresa «{{ empresa.nombre|escapejs }}»? Esta acción no se puede deshacer.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary" style="padding: 0.4rem 0.6rem; border-radius: 8px; border: 1px solid rgba(255, 59, 48, 0.25); background: rgba(255, 59, 48, 0.04); display: inline-flex; align-items: center; gap: 0.25rem; color: var(--danger); cursor: pointer;" title="Eliminar Empresa">
+                                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                                    Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 4rem; color: var(--text-dim);">
+                            <i data-lucide="building" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.5; color: var(--text-light);"></i>
+                            <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main); font-size: 1.1rem;">No hay empresas registradas</div>
+                            Aún no has añadido ninguna empresa al sistema. Comienza creando tu primer cliente.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Empresa -->
+<div class="modal-overlay" id="modalNuevaEmpresa">
+    <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-header">
+            <div class="modal-title">Registrar Nueva Empresa</div>
+            <button class="modal-close" onclick="toggleModal('modalNuevaEmpresa')">
+                <i data-lucide="x" style="width: 20px;"></i>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'empresas' %}">
+            {% csrf_token %}
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                
+                <!-- Sección 1: Datos Básicos -->
+                <h3 style="font-size: 1rem; margin: 0 0 1rem; color: var(--primary); font-weight: 600;">1. Datos Básicos y Rubro</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre Comercial *</label>
+                        <input type="text" name="nombre" class="form-control" required placeholder="Ej: Tech Solutions S.A.">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rubro / Sector *</label>
+                        <select name="rubro_id" id="rubro_id" class="form-control" onchange="checkNuevoRubro(this, 'nuevo_rubro_container')">
+                            <option value="">-- Seleccionar Rubro --</option>
+                            {% for rubro in rubros %}
+                                <option value="{{ rubro.id }}">{{ rubro.nombre }}</option>
+                            {% endfor %}
+                            <option value="new" style="font-weight: 600; color: var(--primary);">➕ Agregar nuevo rubro...</option>
+                        </select>
+                        <div id="nuevo_rubro_container" style="display: none; margin-top: 0.5rem;">
+                            <input type="text" name="nuevo_rubro" id="nuevo_rubro" class="form-control" placeholder="Nombre del nuevo rubro...">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Email Corporativo *</label>
+                        <input type="email" name="email_principal" class="form-control" required placeholder="contacto@empresa.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Teléfono General</label>
+                        <input type="text" name="telefono" class="form-control" placeholder="+54 11 1234-5678">
+                    </div>
+                </div>
+
+                <!-- Sección 2: Ubicación -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">2. Ubicación</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Dirección</label>
+                        <input type="text" name="direccion" class="form-control" placeholder="Ej: Av. del Libertador 4200">
+                    </div>
+                    <div class="form-group" style="flex: 0 0 140px;">
+                        <label class="form-label">Código Postal</label>
+                        <input type="text" name="codigo_postal" class="form-control" placeholder="Ej: C1425">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ciudad</label>
+                        <input type="text" name="ciudad" class="form-control" placeholder="Ej: CABA">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Provincia</label>
+                        <input type="text" name="provincia" class="form-control" placeholder="Ej: Buenos Aires">
+                    </div>
+                </div>
+
+                <!-- Sección 3: Condiciones Comerciales -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">3. Condiciones Comerciales</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Comisión Pactada (%) *</label>
+                        <input type="number" step="0.01" name="comision_porcentaje" class="form-control" required placeholder="20.00" value="20.00" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Modalidad Comercial *</label>
+                        <select name="modalidad_contratacion" class="form-control">
+                            <option value="a_riesgo">A riesgo</option>
+                            <option value="con_anticipo">Con anticipo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Garantía *</label>
+                        <select name="garantia" class="form-control">
+                            <option value="con_garantia">Con garantía</option>
+                            <option value="sin_garantia">Sin garantía</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Sección 4: Contacto Comercial -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">4. Responsable Comercial</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre y Apellido</label>
+                        <input type="text" name="contacto_comercial_nombre" class="form-control" placeholder="Ej: Laura Martínez">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cargo</label>
+                        <input type="text" name="contacto_comercial_cargo" class="form-control" placeholder="Ej: Account Manager">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" name="contacto_comercial_telefono" class="form-control" placeholder="Ej: +54 9 11 ...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email Comercial</label>
+                        <input type="email" name="contacto_comercial_email" class="form-control" placeholder="comercial@empresa.com">
+                    </div>
+                </div>
+
+                <!-- Sección 5: Contacto de RRHH / Responsable de búsquedas -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">5. Contacto de RRHH / Búsquedas *</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre y Apellido *</label>
+                        <input type="text" name="contacto_nombre" class="form-control" required placeholder="Ej: Laura Martínez">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cargo</label>
+                        <input type="text" name="contacto_puesto" class="form-control" placeholder="Ej: Gerente de Talento">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" name="contacto_telefono" class="form-control" placeholder="Ej: +54 9 11 ...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email de Contacto *</label>
+                        <input type="email" name="contacto_email" class="form-control" required placeholder="laura@empresa.com">
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="toggleModal('modalNuevaEmpresa')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Registrar Empresa</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Editar Empresa -->
+<div class="modal-overlay" id="modalEditarEmpresa">
+    <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-header">
+            <div class="modal-title" id="modalEditarEmpresaTitle">Editar Empresa</div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button type="button" class="btn btn-primary" id="btnToggleEditEmpresa" onclick="enableEditMode('formEditarEmpresa', 'btnToggleEditEmpresa', 'modalEditarEmpresaFooter')" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 8px;">
+                    <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Editar
+                </button>
+                <button type="button" class="modal-close" onclick="toggleModal('modalEditarEmpresa')">
+                    <i data-lucide="x" style="width: 20px;"></i>
+                </button>
+            </div>
+        </div>
+        <form method="POST" id="formEditarEmpresa" action="">
+            {% csrf_token %}
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                
+                <!-- Sección 1: Datos Básicos -->
+                <h3 style="font-size: 1rem; margin: 0 0 1rem; color: var(--primary); font-weight: 600;">1. Datos Básicos y Rubro</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre Comercial *</label>
+                        <input type="text" name="nombre" id="edit_nombre" class="form-control" required placeholder="Ej: Tech Solutions S.A.">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rubro / Sector *</label>
+                        <select name="rubro_id" id="edit_rubro_id" class="form-control" onchange="checkNuevoRubro(this, 'edit_nuevo_rubro_container')">
+                            <option value="">-- Seleccionar Rubro --</option>
+                            {% for rubro in rubros %}
+                                <option value="{{ rubro.id }}">{{ rubro.nombre }}</option>
+                            {% endfor %}
+                            <option value="new" style="font-weight: 600; color: var(--primary);">➕ Agregar nuevo rubro...</option>
+                        </select>
+                        <div id="edit_nuevo_rubro_container" style="display: none; margin-top: 0.5rem;">
+                            <input type="text" name="nuevo_rubro" id="edit_nuevo_rubro" class="form-control" placeholder="Nombre del nuevo rubro...">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Email Corporativo *</label>
+                        <input type="email" name="email_principal" id="edit_email_principal" class="form-control" required placeholder="contacto@empresa.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Teléfono General</label>
+                        <input type="text" name="telefono" id="edit_telefono" class="form-control" placeholder="+54 11 1234-5678">
+                    </div>
+                </div>
+
+                <!-- Sección 2: Ubicación -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">2. Ubicación</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Dirección</label>
+                        <input type="text" name="direccion" id="edit_direccion" class="form-control" placeholder="Ej: Av. del Libertador 4200">
+                    </div>
+                    <div class="form-group" style="flex: 0 0 140px;">
+                        <label class="form-label">Código Postal</label>
+                        <input type="text" name="codigo_postal" id="edit_codigo_postal" class="form-control" placeholder="Ej: C1425">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ciudad</label>
+                        <input type="text" name="ciudad" id="edit_ciudad" class="form-control" placeholder="Ej: CABA">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Provincia</label>
+                        <input type="text" name="provincia" id="edit_provincia" class="form-control" placeholder="Ej: Buenos Aires">
+                    </div>
+                </div>
+
+                <!-- Sección 3: Condiciones Comerciales -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">3. Condiciones Comerciales</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Comisión Pactada (%) *</label>
+                        <input type="number" step="0.01" name="comision_porcentaje" id="edit_comision_porcentaje" class="form-control" required placeholder="20.00" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Modalidad Comercial *</label>
+                        <select name="modalidad_contratacion" id="edit_modalidad_contratacion" class="form-control">
+                            <option value="a_riesgo">A riesgo</option>
+                            <option value="con_anticipo">Con anticipo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Garantía *</label>
+                        <select name="garantia" id="edit_garantia" class="form-control">
+                            <option value="con_garantia">Con garantía</option>
+                            <option value="sin_garantia">Sin garantía</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group" style="display: flex; align-items: center; padding-top: 1.5rem;">
+                        <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none;">
+                            <input type="checkbox" name="activa" id="edit_activa" style="width: 18px; height: 18px; border-radius: 4px;">
+                            Empresa Activa
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Sección 4: Contacto Comercial -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">4. Responsable Comercial</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre y Apellido</label>
+                        <input type="text" name="contacto_comercial_nombre" id="edit_contacto_comercial_nombre" class="form-control" placeholder="Ej: Laura Martínez">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cargo</label>
+                        <input type="text" name="contacto_comercial_cargo" id="edit_contacto_comercial_cargo" class="form-control" placeholder="Ej: Account Manager">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" name="contacto_comercial_telefono" id="edit_contacto_comercial_telefono" class="form-control" placeholder="Ej: +54 9 11 ...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email Comercial</label>
+                        <input type="email" name="contacto_comercial_email" id="edit_contacto_comercial_email" class="form-control" placeholder="comercial@empresa.com">
+                    </div>
+                </div>
+
+                <!-- Sección 5: Contacto de RRHH / Responsable de búsquedas -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">5. Contacto de RRHH / Búsquedas *</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre y Apellido *</label>
+                        <input type="text" name="contacto_nombre" id="edit_contacto_nombre" class="form-control" required placeholder="Ej: Laura Martínez">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cargo</label>
+                        <input type="text" name="contacto_puesto" id="edit_contacto_puesto" class="form-control" placeholder="Ej: Gerente de Talento">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" name="contacto_telefono" id="edit_contacto_telefono" class="form-control" placeholder="Ej: +54 9 11 ...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email de Contacto *</label>
+                        <input type="email" name="contacto_email" id="edit_contacto_email" class="form-control" required placeholder="laura@empresa.com">
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer" id="modalEditarEmpresaFooter">
+                <button type="button" class="btn btn-secondary" onclick="toggleModal('modalEditarEmpresa')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal.classList.contains('active')) {
+            modal.classList.remove('active');
+        } else {
+            modal.classList.add('active');
+        }
+    }
+
+    function checkNuevoRubro(selectElem, containerId) {
+        const container = document.getElementById(containerId);
+        const input = container.querySelector('input');
+        if (selectElem.value === 'new') {
+            container.style.display = 'block';
+            input.required = true;
+            input.focus();
+        } else {
+            container.style.display = 'none';
+            input.required = false;
+            input.value = '';
+        }
+    }
+
+    function setFormReadOnly(formId, isReadOnly) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+        const elements = form.querySelectorAll('input, select, textarea');
+        elements.forEach(el => {
+            if (el.name === 'csrfmiddlewaretoken') return;
+            if (isReadOnly) {
+                el.setAttribute('disabled', 'true');
+            } else {
+                el.removeAttribute('disabled');
+            }
+        });
+    }
+
+    function enableEditMode(formId, btnId, footerId) {
+        setFormReadOnly(formId, false);
+        document.getElementById(btnId).style.display = 'none';
+        document.getElementById(footerId).style.display = 'flex';
+    }
+
+    function abrirEditarModal(
+        id, nombre, email, telefono, provincia, ciudad, direccion, codigoPostal, rubroId,
+        contactoNombre, contactoPuesto, contactoTelefono, contactoEmail,
+        contactoComercialNombre, contactoComercialCargo, contactoComercialTelefono, contactoComercialEmail,
+        modalidadContratacion, garantia, comision, activa,
+        readOnlyMode = false
+    ) {
+        // Set action URL dynamically
+        const form = document.getElementById('formEditarEmpresa');
+        form.action = `/empresas/editar/${id}/`;
+        
+        // Populate fields
+        document.getElementById('edit_nombre').value = nombre;
+        document.getElementById('edit_email_principal').value = email;
+        document.getElementById('edit_telefono').value = telefono;
+        document.getElementById('edit_provincia').value = provincia;
+        document.getElementById('edit_ciudad').value = ciudad;
+        document.getElementById('edit_direccion').value = direccion;
+        document.getElementById('edit_codigo_postal').value = codigoPostal;
+        
+        // Rubro select
+        const rubroSelect = document.getElementById('edit_rubro_id');
+        rubroSelect.value = rubroId;
+        
+        // Reset and hide new rubro input
+        const newRubroContainer = document.getElementById('edit_nuevo_rubro_container');
+        newRubroContainer.style.display = 'none';
+        document.getElementById('edit_nuevo_rubro').required = false;
+        document.getElementById('edit_nuevo_rubro').value = '';
+        
+        // RRHH Contact
+        document.getElementById('edit_contacto_nombre').value = contactoNombre;
+        document.getElementById('edit_contacto_puesto').value = contactoPuesto;
+        document.getElementById('edit_contacto_telefono').value = contactoTelefono;
+        document.getElementById('edit_contacto_email').value = contactoEmail;
+        
+        // Commercial Contact
+        document.getElementById('edit_contacto_comercial_nombre').value = contactoComercialNombre;
+        document.getElementById('edit_contacto_comercial_cargo').value = contactoComercialCargo;
+        document.getElementById('edit_contacto_comercial_telefono').value = contactoComercialTelefono;
+        document.getElementById('edit_contacto_comercial_email').value = contactoComercialEmail;
+        
+        // Modalidad & Garantía
+        document.getElementById('edit_modalidad_contratacion').value = modalidadContratacion;
+        document.getElementById('edit_garantia').value = garantia;
+        
+        // Comisión & Activa
+        document.getElementById('edit_comision_porcentaje').value = comision;
+        document.getElementById('edit_activa').checked = activa === 'true';
+
+        // Configure read-only view or edit mode
+        const titleEl = document.getElementById('modalEditarEmpresaTitle');
+        const toggleBtn = document.getElementById('btnToggleEditEmpresa');
+        const footer = document.getElementById('modalEditarEmpresaFooter');
+
+        if (readOnlyMode) {
+            titleEl.textContent = "Detalle de la Empresa";
+            setFormReadOnly('formEditarEmpresa', true);
+            toggleBtn.style.display = 'inline-flex';
+            footer.style.display = 'none';
+        } else {
+            titleEl.textContent = "Editar Empresa";
+            setFormReadOnly('formEditarEmpresa', false);
+            toggleBtn.style.display = 'none';
+            footer.style.display = 'flex';
+        }
+        
+        // Open modal
+        toggleModal('modalEditarEmpresa');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,2892 @@
+<!-- templates/busquedas.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="animate-fade">
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+        <div>
+            <h1 class="page-title">Búsquedas de Personal</h1>
+            <p class="page-subtitle">Gestiona las vacantes activas, sus requisitos y asignaciones.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button class="btn btn-secondary" onclick="toggleModal('modalGestionarEstadosBusqueda')" style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main);">
+                <i data-lucide="settings-2" style="width: 18px;"></i>
+                Gestionar Estados
+            </button>
+            <button class="btn btn-primary" onclick="toggleModal('modalNuevaBusqueda')">
+                <i data-lucide="plus" style="width: 18px;"></i>
+                Nueva Búsqueda
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2.5rem;">
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Total Búsquedas</div>
+                <div class="stat-icon blue">
+                    <i data-lucide="briefcase" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ total_busquedas }}</div>
+            <div class="stat-trend">Registradas históricas</div>
+        </div>
+        
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Vacantes Activas</div>
+                <div class="stat-icon green">
+                    <i data-lucide="check-circle" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ activas }}</div>
+            <div class="stat-trend"><span class="trend-up">Abiertas</span> en este momento</div>
+        </div>
+
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Urgentes</div>
+                <div class="stat-icon red" style="background: rgba(255, 59, 48, 0.1); color: var(--danger);">
+                    <i data-lucide="alert-circle" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ urgentes }}</div>
+            <div class="stat-trend"><span style="color: var(--danger);">Prioridad alta</span> requerida</div>
+        </div>
+
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Posiciones Cubiertas</div>
+                <div class="stat-icon purple">
+                    <i data-lucide="award" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ cubiertas }}</div>
+            <div class="stat-trend">Procesos finalizados con éxito</div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card" style="margin-bottom: 2rem; padding: 1.5rem 2rem;">
+        <form method="GET" action="{% url 'busquedas' %}" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 1rem; align-items: flex-end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="margin-bottom: 0.25rem;">Buscar por Puesto, Empresa o Skill</label>
+                <div class="search-box" style="width: 100%; background: var(--bg-main);">
+                    <i data-lucide="search"></i>
+                    <input type="text" name="q" value="{{ q }}" placeholder="Ej: Python, Google, React...">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="margin-bottom: 0.25rem;">Estado</label>
+                <select name="estado" class="form-control" style="padding: 0.6rem 1rem;">
+                    <option value="">Todos</option>
+                    {% for est in estados %}
+                        <option value="{{ est.id }}" {% if estado_filtro == est.id|stringformat:"s" %}selected{% endif %}>{{ est.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="margin-bottom: 0.25rem;">Área</label>
+                <select name="area" class="form-control" style="padding: 0.6rem 1rem;">
+                    <option value="">Todas</option>
+                    <option value="it" {% if area_filtro == 'it' %}selected{% endif %}>IT</option>
+                    <option value="admin" {% if area_filtro == 'admin' %}selected{% endif %}>Administrativo</option>
+                    <option value="ejecutivo" {% if area_filtro == 'ejecutivo' %}selected{% endif %}>Ejecutivo</option>
+                    <option value="otro" {% if area_filtro == 'otro' %}selected{% endif %}>Otro</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="margin-bottom: 0.25rem;">Prioridad</label>
+                <select name="prioridad" class="form-control" style="padding: 0.6rem 1rem;">
+                    <option value="">Todas</option>
+                    <option value="baja" {% if prioridad_filtro == 'baja' %}selected{% endif %}>Baja</option>
+                    <option value="normal" {% if prioridad_filtro == 'normal' %}selected{% endif %}>Normal</option>
+                    <option value="alta" {% if prioridad_filtro == 'alta' %}selected{% endif %}>Alta</option>
+                    <option value="urgente" {% if prioridad_filtro == 'urgente' %}selected{% endif %}>Urgente</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="height: 42px; padding: 0 1.5rem;">
+                <i data-lucide="filter" style="width: 18px;"></i>
+                Filtrar
+            </button>
+        </form>
+    </div>
+
+    <!-- View Switcher -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+        <div class="segmented-control" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 3px; display: inline-flex; gap: 4px;">
+            <button type="button" id="btn-view-both" onclick="changeViewMode('both')" class="btn" style="padding: 0.4rem 1rem; font-size: 0.85rem; border-radius: 6px; border: none; background: var(--primary); color: white; display: flex; align-items: center; gap: 0.35rem; cursor: pointer; transition: all 0.2s;">
+                <i data-lucide="layout" style="width: 16px; height: 16px;"></i> Ver Ambos
+            </button>
+            <button type="button" id="btn-view-kanban" onclick="changeViewMode('kanban')" class="btn" style="padding: 0.4rem 1rem; font-size: 0.85rem; border-radius: 6px; border: none; background: transparent; color: var(--text-main); display: flex; align-items: center; gap: 0.35rem; cursor: pointer; transition: all 0.2s;">
+                <i data-lucide="kanban" style="width: 16px; height: 16px;"></i> Tablero Kanban
+            </button>
+            <button type="button" id="btn-view-list" onclick="changeViewMode('list')" class="btn" style="padding: 0.4rem 1rem; font-size: 0.85rem; border-radius: 6px; border: none; background: transparent; color: var(--text-main); display: flex; align-items: center; gap: 0.35rem; cursor: pointer; transition: all 0.2s;">
+                <i data-lucide="list" style="width: 16px; height: 16px;"></i> Listado
+            </button>
+        </div>
+    </div>
+
+    <!-- Kanban Board Section -->
+    <div id="section-kanban-board" style="margin-bottom: 2.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h2 class="section-title" style="margin-bottom: 0; display: flex; align-items: center; gap: 0.5rem; font-size: 1.25rem;">
+                <i data-lucide="kanban" style="width: 22px; color: var(--primary);"></i>
+                Tablero Kanban de Seguimiento
+            </h2>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="btn btn-secondary" onclick="toggleModal('modalGestionarEstadosBusqueda')" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main);">
+                    <i data-lucide="settings-2" style="width: 14px; height: 14px;"></i>
+                    Gestionar Estados
+                </button>
+                <div style="font-size: 0.85rem; color: var(--text-dim);">
+                    Arrastra las tarjetas para cambiar el estado de la búsqueda
+                </div>
+            </div>
+        </div>
+        
+        <div class="kanban-board" style="display: flex; overflow-x: auto; gap: 1.25rem; align-items: start; padding-bottom: 1.5rem;">
+            
+            {% for est in estados %}
+            <div class="kanban-column" data-status="{{ est.id }}" ondragover="allowDrop(event)" ondrop="drop(event, '{{ est.id }}')" style="background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-light); padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; min-height: 250px; min-width: 280px; flex-shrink: 0; transition: all 0.2s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.75rem; border-bottom: 2px solid {{ est.color }};">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: var(--text-main); font-size: 0.9rem;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: {{ est.color }};"></span>
+                        {{ est.nombre }}
+                    </div>
+                    <span class="badge" style="background: rgba(0,0,0,0.06); color: var(--text-main);" id="count-{{ est.id }}">0</span>
+                </div>
+                <div class="kanban-cards-container" style="display: flex; flex-direction: column; gap: 0.85rem; min-height: 200px;">
+                    {% for busqueda in busquedas %}
+                        {% if busqueda.estado.id == est.id %}
+                            {% include "kanban_card.html" with busqueda=busqueda %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+            
+        </div>
+    </div>
+
+    <!-- Main List Table -->
+    <div id="section-list-table" class="card">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Puesto</th>
+                        <th>Empresa</th>
+                        <th>Nivel / Área</th>
+                        <th>Rango Salarial</th>
+                        <th>Comisión</th>
+                        <th>Enlaces/Docs</th>
+                        <th>Prioridad</th>
+                        <th>Asignado</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for busqueda in busquedas %}
+                    <tr ondblclick="abrirEditarBusqueda('{{ busqueda.id }}', '{{ busqueda.titulo_puesto|escapejs }}', '{{ busqueda.empresa.id }}', '{{ busqueda.areas|escapejs }}', '{{ busqueda.nivel|escapejs }}', '{{ busqueda.experiencia_minima_anios }}', '{{ busqueda.prioridad|escapejs }}', '{{ busqueda.cantidad_posiciones }}', '{% if busqueda.es_remoto %}remoto{% else %}presencial{% endif %}', '{{ busqueda.ubicacion_puesto|escapejs }}', '{{ busqueda.selector_asignado.id|default:'' }}', '{{ busqueda.salario_minimo|stringformat:'.0f' }}', '{{ busqueda.salario_maximo|stringformat:'.0f' }}', '{{ busqueda.comision_porcentaje|default:'' }}', '{{ busqueda.salario_estipulado_comision|default:'' }}', '{{ busqueda.jornada_laboral|escapejs }}', '{{ busqueda.jd_url|escapejs }}', '{{ busqueda.flyer_url|escapejs }}', '{{ busqueda.mision_puesto|escapejs }}', '{{ busqueda.descripcion|escapejs }}', '{{ busqueda.responsabilidades|escapejs }}', '{{ busqueda.requisitos_excluyentes|escapejs }}', '{{ busqueda.requisitos_deseables|escapejs }}', '{{ busqueda.educacion_minima|escapejs }}', '{{ busqueda.beneficios|escapejs }}', '{{ busqueda.fecha_inicio|date:'Y-m-d' }}', '{{ busqueda.observaciones|escapejs }}', '{{ busqueda.candidato_ideal|escapejs }}', '{{ busqueda.preguntas_informe|escapejs }}', '{{ busqueda.descansos|escapejs }}', '{{ busqueda.convenio|escapejs }}', '{{ busqueda.edad_rango|escapejs }}', '{{ busqueda.zona_residencia|escapejs }}', '{{ busqueda.estado.id }}', '{{ busqueda.codigo_busqueda|default:''|escapejs }}', '{{ busqueda.codigo_puesto|default:'' }}', '{{ busqueda.codigo_titulo|default:'' }}', [{% for asignacion in busqueda.asignaciones_selectores.all %}'{{ asignacion.selector.id }}',{% endfor %}], true)" style="cursor: pointer;" title="Doble clic para ver ficha del perfil o editar">
+                        <td style="font-weight: 600; color: var(--text-main);">
+                             <div>{{ busqueda.titulo_puesto }}</div>
+                             {% if busqueda.codigo_busqueda %}
+                             <div style="font-size: 0.72rem; font-weight: 700; color: var(--primary); margin-top: 0.15rem; background: rgba(10, 132, 255, 0.05); padding: 0.1rem 0.3rem; border-radius: 4px; display: inline-block; border: 1px dashed rgba(10, 132, 255, 0.2);" title="Código de Búsqueda">
+                                 {{ busqueda.codigo_busqueda }}
+                             </div>
+                             {% endif %}
+                             <div style="font-size: 0.75rem; color: var(--text-dim); font-weight: 400; margin-top: 0.2rem;">
+                                 {% if busqueda.es_remoto %}<span style="color: var(--secondary); font-weight: 500;">Remoto</span>{% else %}{{ busqueda.ubicacion_puesto }}{% endif %}
+                             </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="width: 24px; height: 24px; border-radius: 6px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--primary); font-size: 0.75rem;">
+                                    {{ busqueda.empresa.nombre|first|upper }}
+                                </div>
+                                {{ busqueda.empresa.nombre }}
+                            </div>
+                        </td>
+                        <td>
+                            <div>{{ busqueda.get_nivel_display }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-dim);">{{ busqueda.get_areas_display }}</div>
+                        </td>
+                        <td style="font-weight: 500; color: var(--text-main);">
+                            {% if busqueda.salario_minimo > 0 or busqueda.salario_maximo > 0 %}
+                                ${{ busqueda.salario_minimo|floatformat:0 }} - ${{ busqueda.salario_maximo|floatformat:0 }}
+                            {% else %}
+                                <span style="color: var(--text-dim); font-weight: 400; font-size: 0.85rem;">No especificado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if busqueda.comision_porcentaje %}
+                                {{ busqueda.comision_porcentaje|floatformat:1 }}%
+                            {% elif busqueda.empresa.comision_porcentaje %}
+                                {{ busqueda.empresa.comision_porcentaje|floatformat:1 }}% <span style="font-size: 0.7rem; color: var(--text-dim); font-weight: 400;">(Default)</span>
+                            {% else %}
+                                <span style="color: var(--text-dim);">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                {% if busqueda.jd_url %}
+                                    <a href="{{ busqueda.jd_url }}" target="_blank" class="btn btn-secondary" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.2rem; border-radius: 6px; border: 1px solid var(--border); text-decoration: none;" title="Ver Job Description (JD)">
+                                        <i data-lucide="file-text" style="width: 13px; height: 13px; color: var(--primary);"></i>
+                                        JD
+                                    </a>
+                                {% endif %}
+                                {% if busqueda.flyer_imagen %}
+                                    <div style="display: inline-flex; align-items: center; gap: 0.2rem;">
+                                        <a href="{{ busqueda.flyer_imagen.url }}" target="_blank" class="btn btn-secondary" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.2rem; border-radius: 6px; border: 1px solid rgba(242, 161, 52, 0.3); background: rgba(242, 161, 52, 0.08); text-decoration: none;" title="Ver Flyer JPEG Guardado">
+                                            <i data-lucide="image" style="width: 13px; height: 13px; color: var(--secondary);"></i>
+                                            Flyer
+                                        </a>
+                                        <button type="button" class="btn btn-secondary" style="padding: 0.3rem; border-radius: 6px; border: 1px solid rgba(255, 59, 48, 0.25); background: rgba(255, 59, 48, 0.04); cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Eliminar Flyer" onclick="eliminarFlyer('{{ busqueda.id }}')">
+                                            <i data-lucide="trash-2" style="width: 13px; height: 13px; color: var(--danger);"></i>
+                                        </button>
+                                    </div>
+                                {% elif busqueda.flyer_url %}
+                                    <div style="display: inline-flex; align-items: center; gap: 0.2rem;">
+                                        <a href="{{ busqueda.flyer_url }}" target="_blank" class="btn btn-secondary" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.2rem; border-radius: 6px; border: 1px solid var(--border); text-decoration: none;" title="Ver Flyer Link">
+                                            <i data-lucide="link" style="width: 13px; height: 13px; color: var(--secondary);"></i>
+                                            Flyer Link
+                                        </a>
+                                        <button type="button" class="btn btn-secondary" style="padding: 0.3rem; border-radius: 6px; border: 1px solid rgba(255, 59, 48, 0.25); background: rgba(255, 59, 48, 0.04); cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Eliminar Flyer" onclick="eliminarFlyer('{{ busqueda.id }}')">
+                                            <i data-lucide="trash-2" style="width: 13px; height: 13px; color: var(--danger);"></i>
+                                        </button>
+                                    </div>
+                                {% endif %}
+                                {% if busqueda.codigo_busqueda %}
+                                    <span class="btn btn-secondary" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.2rem; border-radius: 6px; border: 1px solid rgba(10, 132, 255, 0.3); background: rgba(10, 132, 255, 0.08); color: var(--primary);" title="Código de búsqueda para Google Form">
+                                        <i data-lucide="hash" style="width: 13px; height: 13px;"></i>
+                                        {{ busqueda.codigo_busqueda }}
+                                    </span>
+                                {% endif %}
+                                {% if not busqueda.jd_url and not busqueda.flyer_url and not busqueda.flyer_imagen and not busqueda.google_form_id %}
+                                    <span style="color: var(--text-light); font-size: 0.8rem; font-style: italic;">Sin links</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <select onchange="cambiarPrioridad('{{ busqueda.id }}', this.value, this)" style="padding: 0.35rem 0.5rem; font-size: 0.75rem; font-weight: 600; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; outline: none; transition: all 0.15s ease;
+                                {% if busqueda.prioridad == 'urgente' %}
+                                    background: rgba(255, 69, 58, 0.1); color: #FF453A; border-color: rgba(255, 69, 58, 0.3);
+                                {% elif busqueda.prioridad == 'alta' %}
+                                    background: rgba(255, 159, 10, 0.1); color: #FF9F0A; border-color: rgba(255, 159, 10, 0.3);
+                                {% elif busqueda.prioridad == 'normal' %}
+                                    background: rgba(10, 132, 255, 0.1); color: #0A84FF; border-color: rgba(10, 132, 255, 0.3);
+                                {% else %}
+                                    background: rgba(142, 142, 147, 0.1); color: #8E8E93; border-color: rgba(142, 142, 147, 0.3);
+                                {% endif %}
+                            ">
+                                <option value="baja" {% if busqueda.prioridad == 'baja' %}selected{% endif %}>Baja</option>
+                                <option value="normal" {% if busqueda.prioridad == 'normal' %}selected{% endif %}>Normal</option>
+                                <option value="alta" {% if busqueda.prioridad == 'alta' %}selected{% endif %}>Alta</option>
+                                <option value="urgente" {% if busqueda.prioridad == 'urgente' %}selected{% endif %}>Urgente</option>
+                            </select>
+                        </td>
+                        <td>
+                            {% if busqueda.selector_asignado %}
+                                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                    <div style="width: 20px; height: 20px; border-radius: 50%; background: var(--bg-main); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; color: var(--text-main);">
+                                        {{ busqueda.selector_asignado.nombre|first|upper }}
+                                    </div>
+                                    <span style="font-size: 0.85rem;">{{ busqueda.selector_asignado.nombre }}</span>
+                                </div>
+                            {% else %}
+                                <span style="font-size: 0.85rem; color: var(--text-light); italic">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if busqueda.estado %}
+                                <span class="badge" style="background: {{ busqueda.estado.color }}18; color: {{ busqueda.estado.color }}; border: 1px solid {{ busqueda.estado.color }}33;">
+                                    {{ busqueda.estado.nombre }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="white-space: nowrap;">
+                            <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+                                <a href="/postulantes/?vista=busqueda&busqueda_id={{ busqueda.id }}" class="btn btn-primary" style="padding: 0.35rem 0.7rem; font-size: 0.75rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.25rem; text-decoration: none; font-weight: 600;" title="Ver postulantes activos de esta búsqueda">
+                                    <i data-lucide="users" style="width: 14px; height: 14px;"></i>
+                                    Ver Postulantes
+                                </a>
+                                <a href="{% url 'exportar_jd_word' busqueda.id %}" class="btn btn-secondary" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; border-radius: 8px; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 0.25rem; text-decoration: none; color: var(--text-main);" title="Exportar Perfil a Word (.docx)">
+                                    <i data-lucide="file-down" style="width: 14px; height: 14px; color: #2B579A;"></i>
+                                    Exportar Perfil
+                                </a>
+                                <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; border-radius: 8px; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 0.25rem; color: var(--text-main); cursor: pointer;" title="Editar Ficha del Perfil" onclick="abrirEditarBusqueda('{{ busqueda.id }}', '{{ busqueda.titulo_puesto|escapejs }}', '{{ busqueda.empresa.id }}', '{{ busqueda.areas|escapejs }}', '{{ busqueda.nivel|escapejs }}', '{{ busqueda.experiencia_minima_anios }}', '{{ busqueda.prioridad|escapejs }}', '{{ busqueda.cantidad_posiciones }}', '{% if busqueda.es_remoto %}remoto{% else %}presencial{% endif %}', '{{ busqueda.ubicacion_puesto|escapejs }}', '{{ busqueda.selector_asignado.id|default:'' }}', '{{ busqueda.salario_minimo|stringformat:'.0f' }}', '{{ busqueda.salario_maximo|stringformat:'.0f' }}', '{{ busqueda.comision_porcentaje|default:'' }}', '{{ busqueda.salario_estipulado_comision|default:'' }}', '{{ busqueda.jornada_laboral|escapejs }}', '{{ busqueda.jd_url|escapejs }}', '{{ busqueda.flyer_url|escapejs }}', '{{ busqueda.mision_puesto|escapejs }}', '{{ busqueda.descripcion|escapejs }}', '{{ busqueda.responsabilidades|escapejs }}', '{{ busqueda.requisitos_excluyentes|escapejs }}', '{{ busqueda.requisitos_deseables|escapejs }}', '{{ busqueda.educacion_minima|escapejs }}', '{{ busqueda.beneficios|escapejs }}', '{{ busqueda.fecha_inicio|date:'Y-m-d' }}', '{{ busqueda.observaciones|escapejs }}', '{{ busqueda.candidato_ideal|escapejs }}', '{{ busqueda.preguntas_informe|escapejs }}', '{{ busqueda.descansos|escapejs }}', '{{ busqueda.convenio|escapejs }}', '{{ busqueda.edad_rango|escapejs }}', '{{ busqueda.zona_residencia|escapejs }}', '{{ busqueda.estado|escapejs }}', '{{ busqueda.codigo_busqueda|default:''|escapejs }}', '{{ busqueda.codigo_puesto|default:'' }}', '{{ busqueda.codigo_titulo|default:'' }}', [{% for asignacion in busqueda.asignaciones_selectores.all %}'{{ asignacion.selector.id }}',{% endfor %}], false)">
+                                    <i data-lucide="pencil" style="width: 14px; height: 14px; color: var(--primary);"></i>
+                                    Editar Ficha
+                                </button>
+                                <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; border-radius: 8px; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 0.25rem; color: var(--text-main); cursor: pointer;" title="Diseñar y Generar Flyer Promocional" onclick="abrirCreadorFlyer('{{ busqueda.id }}', '{{ busqueda.titulo_puesto|escapejs }}', '{{ busqueda.empresa.nombre|escapejs }}', '{{ busqueda.requisitos_excluyentes|escapejs }}', '{% if busqueda.es_remoto %}Remoto{% else %}{{ busqueda.ubicacion_puesto|escapejs }}{% endif %}', '{{ busqueda.jornada_laboral|escapejs }}', '{{ busqueda.areas|escapejs }}')">
+                                    <i data-lucide="palette" style="width: 14px; height: 14px; color: var(--secondary);"></i>
+                                    Crear Flyer
+                                </button>
+                                <form method="POST" action="{% url 'eliminar_busqueda' busqueda.id %}" style="display: inline;" onsubmit="return confirm('¿Estás completamente seguro de que deseas eliminar permanentemente la búsqueda de personal «{{ busqueda.titulo_puesto|escapejs }}»? Esta acción no se puede deshacer.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-secondary" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; border-radius: 8px; border: 1px solid rgba(255, 59, 48, 0.25); background: rgba(255, 59, 48, 0.04); display: inline-flex; align-items: center; gap: 0.25rem; color: var(--danger); cursor: pointer;" title="Eliminar Búsqueda de Personal">
+                                        <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--danger);"></i>
+                                        Eliminar
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 5rem 2rem; color: var(--text-dim);">
+                            <i data-lucide="search" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.4; color: var(--text-light);"></i>
+                            <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main); font-size: 1.1rem;">No se encontraron búsquedas</div>
+                            No hay vacantes de personal que coincidan con los filtros aplicados.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Segmented Controls (Segmentados por pestañas al estilo macOS) */
+.segmented-control {
+    display: flex;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 2px;
+    gap: 2px;
+    width: 100%;
+}
+
+.segmented-control input[type="radio"] {
+    display: none;
+}
+
+.segmented-control label {
+    flex: 1;
+    text-align: center;
+    padding: 0.55rem 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 550;
+    color: var(--text-dim);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.segmented-control input[type="radio"]:checked + label {
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(10, 88, 202, 0.2);
+}
+
+/* Skills Selector Index */
+.skills-catalog-container {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    background: var(--bg-main);
+    max-height: 250px;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+}
+
+.skills-category {
+    margin-bottom: 1.25rem;
+}
+
+.skills-category-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.75px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.25rem;
+}
+
+.skills-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.skill-badge-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: var(--card-bg, #ffffff);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.skill-badge-btn:hover {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: var(--text-dim);
+}
+
+.skill-badge-btn.active {
+    background: var(--primary) !important;
+    color: #ffffff !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 2px 6px rgba(10, 88, 202, 0.2);
+}
+
+.btn-theme-img.active {
+    border-color: var(--secondary) !important;
+    background: rgba(242, 161, 52, 0.05) !important;
+    box-shadow: 0 0 8px rgba(242, 161, 52, 0.2) !important;
+}
+</style>
+
+<div class="modal-overlay" id="modalNuevaBusqueda">
+    <div class="modal-content" style="max-width: 820px; width: 95%;">
+        <div class="modal-header">
+            <div class="modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="file-text" style="width: 22px; color: var(--primary);"></i>
+                Crear Perfil de Búsqueda de Personal
+            </div>
+            <button class="modal-close" onclick="toggleModal('modalNuevaBusqueda')">
+                <i data-lucide="x" style="width: 20px;"></i>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'busquedas' %}">
+            {% csrf_token %}
+            <div class="modal-body" style="padding: 1.5rem 2.5rem; max-height: 70vh; overflow-y: auto;">
+                
+                <!-- SECCIÓN 1: Ficha General -->
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.35rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+                    <i data-lucide="info" style="width: 16px;"></i>
+                    Ficha Técnica de la Vacante
+                </h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Empresa Cliente *</label>
+                        <select name="empresa_id" class="form-control" required style="padding: 0.6rem 1rem;">
+                            <option value="">Selecciona la empresa...</option>
+                            {% for empresa in empresas %}
+                                <option value="{{ empresa.id }}">{{ empresa.nombre }}</option>
+                            {% empty %}
+                                <option value="" disabled>No hay empresas registradas (Crea una primero)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Título del Puesto *</label>
+                        <input type="text" name="titulo_puesto" list="job-titles" class="form-control" required placeholder="Selecciona o escribe el puesto..." autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Jornada Laboral</label>
+                        <input type="text" name="jornada_laboral" class="form-control" placeholder="Ej: Lunes a Viernes de 9 a 18 hs">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Comisión Pactada (%)</label>
+                        <input type="number" name="comision_porcentaje" class="form-control" placeholder="Ej: 20.00" min="0" max="100" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Salario Estipulado para Comisión ($ ARS)</label>
+                        <input type="number" name="salario_estipulado_comision" class="form-control" placeholder="Ej: 900000 (Base para el cálculo de comisión)" min="0" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Fecha Estimada de Inicio</label>
+                        <input type="date" name="fecha_inicio" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Convenio Colectivo</label>
+                        <input type="text" name="convenio" class="form-control" placeholder="Ej: SMATA, Fuera de convenio">
+                    </div>
+                </div>
+
+                <!-- Links Externos (Lógica ConfiaRH Excel) -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Google Docs Link (JD original)</label>
+                        <input type="url" name="jd_url" class="form-control" placeholder="https://docs.google.com/document/d/...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Google Drive Link (Flyer promocional)</label>
+                        <input type="url" name="flyer_url" class="form-control" placeholder="https://drive.google.com/file/d/...">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Código de Puesto *</label>
+                        <select name="codigo_puesto" class="form-control" required style="height: 42px;">
+                            <option value="" disabled selected>-- Selecciona un puesto --</option>
+                            {% for cp in codigos_puesto %}
+                                <option value="{{ cp.codigo }}">{{ cp.codigo }} - {{ cp.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Código de Título/Profesión *</label>
+                        <select name="codigo_titulo" class="form-control" required style="height: 42px;">
+                            <option value="" disabled selected>-- Selecciona una profesión/título --</option>
+                            {% for ct in codigos_titulo %}
+                                <option value="{{ ct.codigo }}">{{ ct.codigo }} - {{ ct.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 2: Características y Filtros (Pestañas / Segmentados) -->
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 1.75rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.35rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+                    <i data-lucide="sliders" style="width: 16px;"></i>
+                    Parámetros y Filtros de Búsqueda
+                </h3>
+
+                <!-- Fila 1: Área & Nivel -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Área Profesional</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="area_it" name="areas" value="it" checked>
+                            <label for="area_it">IT</label>
+                            
+                            <input type="radio" id="area_admin" name="areas" value="admin">
+                            <label for="area_admin">Administrativo</label>
+                            
+                            <input type="radio" id="area_ejecutivo" name="areas" value="ejecutivo">
+                            <label for="area_ejecutivo">Ejecutivo</label>
+                            
+                            <input type="radio" id="area_otro" name="areas" value="otro">
+                            <label for="area_otro">Otro</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Nivel del Puesto</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="level_practicante" name="nivel" value="practicante">
+                            <label for="level_practicante">Trainee</label>
+                            
+                            <input type="radio" id="level_junior" name="nivel" value="junior">
+                            <label for="level_junior">Junior</label>
+                            
+                            <input type="radio" id="level_semi" name="nivel" value="semi_senior" checked>
+                            <label for="level_semi">Semi Sr</label>
+                            
+                            <input type="radio" id="level_senior" name="nivel" value="senior">
+                            <label for="level_senior">Senior</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 2: Experiencia Mínima & Prioridad -->
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Experiencia Mínima Requerida</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="exp_0" name="experiencia_minima_anios" value="0">
+                            <label for="exp_0">Sin exp</label>
+                            
+                            <input type="radio" id="exp_1" name="experiencia_minima_anios" value="1">
+                            <label for="exp_1">1-2 años</label>
+                            
+                            <input type="radio" id="exp_3" name="experiencia_minima_anios" value="3" checked>
+                            <label for="exp_3">3-4 años</label>
+                            
+                            <input type="radio" id="exp_5" name="experiencia_minima_anios" value="5">
+                            <label for="exp_5">5+ años</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Prioridad de Cobertura</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="prio_baja" name="prioridad" value="baja">
+                            <label for="prio_baja">Baja</label>
+                            
+                            <input type="radio" id="prio_normal" name="prioridad" value="normal" checked>
+                            <label for="prio_normal">Normal</label>
+                            
+                            <input type="radio" id="prio_alta" name="prioridad" value="alta">
+                            <label for="prio_alta">Alta</label>
+                            
+                            <input type="radio" id="prio_urgente" name="prioridad" value="urgente">
+                            <label for="prio_urgente">Urgente</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 3: Modalidad & Vacantes -->
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Modalidad (Presencialidad)</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="mod_presencial" name="modalidad_trabajo" value="presencial" checked onclick="setRemoto(false)">
+                            <label for="mod_presencial">Presencial</label>
+                            
+                            <input type="radio" id="mod_remoto" name="modalidad_trabajo" value="remoto" onclick="setRemoto(true)">
+                            <label for="mod_remoto">100% Remoto</label>
+                            
+                            <input type="radio" id="mod_hibrido" name="modalidad_trabajo" value="hibrido" onclick="setRemoto(false)">
+                            <label for="mod_hibrido">Híbrido</label>
+                        </div>
+                        <input type="hidden" name="es_remoto" id="id_es_remoto" value="false">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Cantidad de Posiciones a Cubrir</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="vac_1" name="cantidad_posiciones" value="1" checked>
+                            <label for="vac_1">1</label>
+                            
+                            <input type="radio" id="vac_2" name="cantidad_posiciones" value="2">
+                            <label for="vac_2">2</label>
+                            
+                            <input type="radio" id="vac_3" name="cantidad_posiciones" value="3">
+                            <label for="vac_3">3</label>
+                            
+                            <input type="radio" id="vac_5" name="cantidad_posiciones" value="5">
+                            <label for="vac_5">5+</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 4: Ubicación & Edad -->
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Ubicación del Puesto</label>
+                        <input type="text" name="ubicacion_puesto" id="id_ubicacion_puesto" class="form-control" placeholder="Ej: CABA, Argentina" value="CABA, Argentina">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rango de Edad Recomendado</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <select id="crear_edad_min" class="form-control" style="flex: 1; height: 38px;" onchange="updateEdadRango('crear')">
+                                <option value="" selected disabled>Mín</option>
+                                {% for age in "x"|rjust:"63" %}
+                                    <option value="{{ forloop.counter|add:17 }}">{{ forloop.counter|add:17 }}</option>
+                                {% endfor %}
+                            </select>
+                            <span style="color: var(--text-dim);">a</span>
+                            <select id="crear_edad_max" class="form-control" style="flex: 1; height: 38px;" onchange="updateEdadRango('crear')">
+                                <option value="" selected disabled>Máx</option>
+                                {% for age in "x"|rjust:"63" %}
+                                    <option value="{{ forloop.counter|add:17 }}">{{ forloop.counter|add:17 }}</option>
+                                {% endfor %}
+                            </select>
+                            <span style="color: var(--text-dim); white-space: nowrap;">años</span>
+                        </div>
+                        <input type="hidden" name="edad_rango" id="crear_edad_rango_val">
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Zona de Residencia sugerida</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <select id="crear_zona_select" class="form-control" style="flex: 1; height: 38px;" onchange="handleZonaChange('crear')">
+                                <option value="" selected disabled>-- Selecciona ubicación --</option>
+                                <option value="CABA">CABA (Ciudad Autónoma de Buenos Aires)</option>
+                                <option value="GBA Norte">GBA Norte</option>
+                                <option value="GBA Sur">GBA Sur</option>
+                                <option value="GBA Oeste">GBA Oeste</option>
+                                <option value="Buenos Aires (Provincia)">Buenos Aires (Provincia)</option>
+                                <option value="Rosario, Santa Fe">Rosario, Santa Fe</option>
+                                <option value="Santa Fe (Provincia)">Santa Fe (Provincia)</option>
+                                <option value="Córdoba (Capital)">Córdoba (Capital)</option>
+                                <option value="Córdoba (Provincia)">Córdoba (Provincia)</option>
+                                <option value="Mendoza">Mendoza</option>
+                                <option value="Tucumán">Tucumán</option>
+                                <option value="Entre Ríos">Entre Ríos</option>
+                                <option value="Salta">Salta</option>
+                                <option value="Neuquén">Neuquén</option>
+                                <option value="Río Negro">Río Negro</option>
+                                <option value="Chubut">Chubut</option>
+                                <option value="Santa Cruz">Santa Cruz</option>
+                                <option value="Tierra del Fuego">Tierra del Fuego</option>
+                                <option value="San Juan">San Juan</option>
+                                <option value="San Luis">San Luis</option>
+                                <option value="La Pampa">La Pampa</option>
+                                <option value="Catamarca">Catamarca</option>
+                                <option value="La Rioja">La Rioja</option>
+                                <option value="Santiago del Estero">Santiago del Estero</option>
+                                <option value="Chaco">Chaco</option>
+                                <option value="Corrientes">Corrientes</option>
+                                <option value="Misiones">Misiones</option>
+                                <option value="Formosa">Formosa</option>
+                                <option value="Jujuy">Jujuy</option>
+                                <option value="otro">Otro (Ingreso manual)</option>
+                            </select>
+                            <input type="text" name="zona_residencia" id="crear_zona_text" class="form-control" style="flex: 1.2; display: none;" placeholder="Escribe la zona personalizada...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LÓGICA DE ASIGNACIÓN MULTIPLE/GRUPO/TODOS -->
+                <div class="form-group" style="margin-top: 1rem; background: rgba(0, 0, 0, 0.02); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border);">
+                    <label class="form-label" style="font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">Asignación de Selectores</label>
+                    <div class="segmented-control" style="margin-bottom: 1rem;">
+                        <input type="radio" id="tipo_asignacion_unico" name="tipo_asignacion" value="unico" checked onclick="toggleAssignmentFields('nuevo')">
+                        <label for="tipo_asignacion_unico">Único</label>
+                        
+                        <input type="radio" id="tipo_asignacion_todos" name="tipo_asignacion" value="todos" onclick="toggleAssignmentFields('nuevo')">
+                        <label for="tipo_asignacion_todos">Todos</label>
+                        
+                        <input type="radio" id="tipo_asignacion_grupo" name="tipo_asignacion" value="grupo" onclick="toggleAssignmentFields('nuevo')">
+                        <label for="tipo_asignacion_grupo">Grupo</label>
+                        
+                        <input type="radio" id="tipo_asignacion_multiples" name="tipo_asignacion" value="multiples" onclick="toggleAssignmentFields('nuevo')">
+                        <label for="tipo_asignacion_multiples">Múltiple</label>
+                    </div>
+
+                    <!-- Single Selector Field -->
+                    <div id="div_asignacion_unico" class="assignment-field-group">
+                        <label class="form-label">Selector Responsable</label>
+                        <select name="selector_asignado_id" class="form-control" style="padding: 0.6rem 1rem;">
+                            <option value="">Sin Asignar</option>
+                            {% for selector in selectores %}
+                                <option value="{{ selector.id }}">{{ selector.nombre }} {{ selector.apellido }}</option>
+                            {% empty %}
+                                <option value="" disabled>No hay selectores activos</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Group Selector Field -->
+                    <div id="div_asignacion_grupo" class="assignment-field-group" style="display: none;">
+                        <label class="form-label">Grupo de Selectores</label>
+                        <select name="grupo_asignado_id" class="form-control" style="padding: 0.6rem 1rem;">
+                            <option value="">Selecciona un grupo...</option>
+                            {% for grupo in grupos %}
+                                <option value="{{ grupo.id }}">{{ grupo.nombre }} ({{ grupo.selectores.count }} selectores)</option>
+                            {% empty %}
+                                <option value="" disabled>No hay grupos creados</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Multiple Selectors Field -->
+                    <div id="div_asignacion_multiples" class="assignment-field-group" style="display: none;">
+                        <label class="form-label">Seleccionar uno o más Selectores</label>
+                        <div style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem; background: var(--bg-main);">
+                            {% for selector in selectores %}
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                    <input type="checkbox" name="selectores_asignados_ids" value="{{ selector.id }}" id="sel_check_{{ selector.id }}">
+                                    <label for="sel_check_{{ selector.id }}" style="font-size: 0.85rem; cursor: pointer; color: var(--text-main);">{{ selector.nombre }} {{ selector.apellido }}</label>
+                                </div>
+                            {% empty %}
+                                <div style="font-size: 0.85rem; color: var(--text-dim);">No hay selectores activos</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 5: Salarios -->
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Salario Mínimo Mensual ($ ARS)</label>
+                        <input type="number" name="salario_minimo" class="form-control" placeholder="Ej: 800000" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Salario Máximo Mensual ($ ARS)</label>
+                        <input type="number" name="salario_maximo" class="form-control" placeholder="Ej: 1200000" min="0" value="0">
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 3: Descripción Detallada del Perfil -->
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 1.75rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.35rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+                    <i data-lucide="align-left" style="width: 16px;"></i>
+                    Descripción Detallada del Perfil Requerido
+                </h3>
+
+                <div class="form-group">
+                    <label class="form-label">Misión u Objetivo Principal del Puesto *</label>
+                    <textarea name="mision_puesto" class="form-control" rows="2" required placeholder="Define brevemente el propósito del puesto..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Descripción General o Resumen Corto</label>
+                    <textarea name="descripcion" class="form-control" rows="2" placeholder="Resumen rápido o notas del cliente..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Candidato Ideal (Resumen del perfil ideal)</label>
+                    <textarea name="candidato_ideal" class="form-control" rows="2" placeholder="Buscamos un profesional con sólida experiencia..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Preguntas Filtro para el Informe (una por línea)</label>
+                    <textarea name="preguntas_informe" class="form-control" rows="3" placeholder="¿Tenés experiencia liquidando Ganancias?&#10;¿Tuviste equipo a cargo?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Responsabilidades y Tareas Clave (una por línea)</label>
+                    <textarea name="responsabilidades" class="form-control" rows="3" placeholder="- Tarea o responsabilidad 1&#10;- Tarea o responsabilidad 2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Requisitos Excluyentes / Indispensables (uno por línea)</label>
+                    <textarea name="requisitos_excluyentes" class="form-control" rows="3" placeholder="- Requisito excluyente 1&#10;- Requisito excluyente 2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Requisitos Deseables / Valorados (uno por línea)</label>
+                    <textarea name="requisitos_deseables" class="form-control" rows="3" placeholder="- Deseable 1&#10;- Deseable 2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Educación Mínima</label>
+                    <select name="educacion_minima" class="form-control" style="height: 38px;">
+                        <option value="" selected disabled>-- Selecciona Educación Mínima --</option>
+                        <option value="Secundario Completo">Secundario Completo</option>
+                        <option value="Terciario en Curso">Terciario en Curso</option>
+                        <option value="Terciario Completo">Terciario Completo</option>
+                        <option value="Universitario en Curso">Universitario en Curso</option>
+                        <option value="Universitario Completo">Universitario Completo</option>
+                        <option value="Posgrado / Maestría">Posgrado / Maestría</option>
+                        <option value="Sin Especificar">Sin Especificar</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Beneficios y Perks (uno por línea)</label>
+                    <textarea name="beneficios" class="form-control" rows="2" placeholder="- Medicina prepaga&#10;- Clases de inglés"></textarea>
+                    <div style="margin-top: 0.5rem;">
+                        <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.35rem;">Sugeridos (haz clic para agregar/quitar):</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem;" id="perks_suggestions_crear">
+                            <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('crear', 'Medicina Prepaga')">🩺 Medicina Prepaga</button>
+                            <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('crear', 'Modalidad Híbrida / Home Office')">🏠 Home Office / Híbrido</button>
+                            <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('crear', 'Horarios Flexibles')">⏱️ Horarios Flexibles</button>
+                            <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('crear', 'Capacitación / Clases de Inglés')">📚 Clases de Inglés</button>
+                            <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('crear', 'Revisión Salarial Periódica')">📈 Ajustes Salariales</button>
+                            <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('crear', 'Tarjeta de Almuerzo / Comedor')">🍔 Almuerzo / Comedor</button>
+                            <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('crear', 'Gimnasio Bonificado')">💪 Gimnasio</button>
+                            <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('crear', 'Día de Cumpleaños Libre')">🎉 Cumpleaños Libre</button>
+                        </div>
+                        <div style="display: flex; gap: 0.35rem; align-items: center;">
+                            <input type="text" id="custom_perk_crear" class="form-control" style="height: 32px; font-size: 0.8rem; padding: 0.25rem 0.5rem;" placeholder="Otro beneficio...">
+                            <button type="button" class="btn btn-secondary" style="height: 32px; padding: 0 0.75rem; font-size: 0.8rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem;" onclick="addCustomPerk('crear')">
+                                <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Horarios de Descansos / Breaks</label>
+                        <input type="text" name="descansos" class="form-control" placeholder="Ej: 10 min desayuno, 40 min almuerzo">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label">Observaciones o Notas de Entrega importantes</label>
+                    <textarea name="observaciones" class="form-control" rows="2" placeholder="Ej: SI O SI PARA PRESENTAR CANDIDATOS VAMOS A NECESITAR NÚMERO DNI"></textarea>
+                </div>
+
+                <!-- SECCIÓN 4: Catálogo de Habilidades (Index Seleccionable) -->
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 1.75rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem;">
+                    <i data-lucide="tags" style="width: 16px;"></i>
+                    Habilidades y Tecnologías Requeridas (Index de Skills)
+                </h3>
+                <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 1rem;">
+                    Haz clic sobre las habilidades que requiere el puesto para seleccionarlas e integrarlas automáticamente.
+                </p>
+
+                <!-- Hidden Input to submit active skills -->
+                <input type="hidden" name="habilidades_requeridas" id="id_habilidades_requeridas" value="">
+
+                <div class="skills-catalog-container">
+                    <div id="skills-catalog-content">
+                        <!-- Populated by JavaScript catalog -->
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="toggleModal('modalNuevaBusqueda')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Crear Búsqueda de Personal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Editar Perfil de Búsqueda de Personal -->
+<div class="modal-overlay" id="modalEditarBusqueda">
+    <div class="modal-content" style="max-width: 820px; width: 95%;">
+        <div class="modal-header">
+            <div class="modal-title" id="modalEditarBusquedaTitle" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="edit-3" style="width: 22px; color: var(--primary);"></i>
+                Editar Ficha del Perfil de Búsqueda
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button type="button" class="btn btn-primary" id="btnToggleEditBusqueda" onclick="enableEditMode('formEditarBusqueda', 'btnToggleEditBusqueda', 'modalEditarBusquedaFooter')" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 8px;">
+                    <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Editar
+                </button>
+                <button type="button" class="modal-close" onclick="toggleModal('modalEditarBusqueda')">
+                    <i data-lucide="x" style="width: 20px;"></i>
+                </button>
+            </div>
+        </div>
+        <form id="formEditarBusqueda" method="POST" action="">
+            {% csrf_token %}
+            <div class="modal-body" style="padding: 1.5rem 2.5rem; max-height: 70vh; overflow-y: auto;">
+                
+                <!-- ESTADO DE LA BÚSQUEDA -->
+                <div class="form-row" style="margin-bottom: 1.5rem; background: rgba(0, 0, 0, 0.02); padding: 1rem; border-radius: 10px; border: 1px solid var(--border);">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" style="font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">Estado del Proceso de Selección</label>
+                        <div class="segmented-control" style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                            {% for est in estados %}
+                            <input type="radio" id="edit_est_{{ est.id }}" name="estado" value="{{ est.id }}">
+                            <label for="edit_est_{{ est.id }}">{{ est.nombre }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 1: Ficha General -->
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.35rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+                    <i data-lucide="info" style="width: 16px;"></i>
+                    Ficha Técnica de la Vacante
+                </h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Empresa Cliente *</label>
+                        <select name="empresa_id" id="edit_empresa_id" class="form-control" required style="padding: 0.6rem 1rem;">
+                            <option value="">Selecciona la empresa...</option>
+                            {% for empresa in empresas %}
+                                <option value="{{ empresa.id }}">{{ empresa.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Título del Puesto *</label>
+                        <input type="text" name="titulo_puesto" id="edit_titulo_puesto" class="form-control" required placeholder="Selecciona o escribe el puesto..." autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Jornada Laboral</label>
+                        <input type="text" name="jornada_laboral" id="edit_jornada_laboral" class="form-control" placeholder="Ej: Lunes a Viernes de 9 a 18 hs">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Comisión Pactada (%)</label>
+                        <input type="number" name="comision_porcentaje" id="edit_comision_porcentaje" class="form-control" placeholder="Ej: 20.00" min="0" max="100" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Salario Estipulado para Comisión ($ ARS)</label>
+                        <input type="number" name="salario_estipulado_comision" id="edit_salario_estipulado_comision" class="form-control" placeholder="Ej: 900000" min="0" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Fecha Estimada de Inicio</label>
+                        <input type="date" name="fecha_inicio" id="edit_fecha_inicio" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Convenio Colectivo</label>
+                        <input type="text" name="convenio" id="edit_convenio" class="form-control" placeholder="Ej: SMATA, Fuera de convenio">
+                    </div>
+                </div>
+
+                <!-- Links Externos (Lógica ConfiaRH Excel) -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Google Docs Link (JD original)</label>
+                        <input type="url" name="jd_url" id="edit_jd_url" class="form-control" placeholder="https://docs.google.com/document/d/...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Google Drive Link (Flyer promocional)</label>
+                        <input type="url" name="flyer_url" id="edit_flyer_url" class="form-control" placeholder="https://drive.google.com/file/d/...">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Código de Puesto *</label>
+                        <select name="codigo_puesto" id="edit_codigo_puesto" class="form-control" required style="height: 42px;">
+                            <option value="" disabled>-- Selecciona un puesto --</option>
+                            {% for cp in codigos_puesto %}
+                                <option value="{{ cp.codigo }}">{{ cp.codigo }} - {{ cp.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Código de Título/Profesión *</label>
+                        <select name="codigo_titulo" id="edit_codigo_titulo" class="form-control" required style="height: 42px;">
+                            <option value="" disabled>-- Selecciona una profesión/título --</option>
+                            {% for ct in codigos_titulo %}
+                                <option value="{{ ct.codigo }}">{{ ct.codigo }} - {{ ct.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: -0.5rem; margin-bottom: 1rem;">
+                    Código de búsqueda actual completo: <strong id="lbl_codigo_busqueda" style="color: var(--primary);"></strong>
+                </div>
+
+                <!-- SECCIÓN 2: Características y Filtros (Pestañas / Segmentados) -->
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 1.75rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.35rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+                    <i data-lucide="sliders" style="width: 16px;"></i>
+                    Parámetros y Filtros de Búsqueda
+                </h3>
+
+                <!-- Fila 1: Área & Nivel -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Área Profesional</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="edit_area_it" name="areas" value="it">
+                            <label for="edit_area_it">IT</label>
+                            
+                            <input type="radio" id="edit_area_admin" name="areas" value="admin">
+                            <label for="edit_area_admin">Administrativo</label>
+                            
+                            <input type="radio" id="edit_area_ejecutivo" name="areas" value="ejecutivo">
+                            <label for="edit_area_ejecutivo">Ejecutivo</label>
+                            
+                            <input type="radio" id="edit_area_otro" name="areas" value="otro">
+                            <label for="edit_area_otro">Otro</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Nivel del Puesto</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="edit_level_practicante" name="nivel" value="practicante">
+                            <label for="edit_level_practicante">Trainee</label>
+                            
+                            <input type="radio" id="edit_level_junior" name="nivel" value="junior">
+                            <label for="edit_level_junior">Junior</label>
+                            
+                            <input type="radio" id="edit_level_semi" name="nivel" value="semi_senior">
+                            <label for="edit_level_semi">Semi Sr</label>
+                            
+                            <input type="radio" id="edit_level_senior" name="nivel" value="senior">
+                            <label for="edit_level_senior">Senior</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 2: Experiencia Mínima & Prioridad -->
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Experiencia Mínima Requerida</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="edit_exp_0" name="experiencia_minima_anios" value="0">
+                            <label for="edit_exp_0">Sin exp</label>
+                            
+                            <input type="radio" id="edit_exp_1" name="experiencia_minima_anios" value="1">
+                            <label for="edit_exp_1">1-2 años</label>
+                            
+                            <input type="radio" id="edit_exp_3" name="experiencia_minima_anios" value="3">
+                            <label for="edit_exp_3">3-4 años</label>
+                            
+                            <input type="radio" id="edit_exp_5" name="experiencia_minima_anios" value="5">
+                            <label for="edit_exp_5">5+ años</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Prioridad de Cobertura</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="edit_prio_baja" name="prioridad" value="baja">
+                            <label for="edit_prio_baja">Baja</label>
+                            
+                            <input type="radio" id="edit_prio_normal" name="prioridad" value="normal">
+                            <label for="edit_prio_normal">Normal</label>
+                            
+                            <input type="radio" id="edit_prio_alta" name="prioridad" value="alta">
+                            <label for="edit_prio_alta">Alta</label>
+                            
+                            <input type="radio" id="edit_prio_urgente" name="prioridad" value="urgente">
+                            <label for="edit_prio_urgente">Urgente</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 3: Modalidad & Vacantes -->
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Modalidad (Presencialidad)</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="edit_mod_presencial" name="modalidad_trabajo" value="presencial">
+                            <label for="edit_mod_presencial">Presencial</label>
+                            
+                            <input type="radio" id="edit_mod_remoto" name="modalidad_trabajo" value="remoto">
+                            <label for="edit_mod_remoto">100% Remoto</label>
+                            
+                            <input type="radio" id="edit_mod_hibrido" name="modalidad_trabajo" value="hibrido">
+                            <label for="edit_mod_hibrido">Híbrido</label>
+                        </div>
+                        <input type="hidden" name="es_remoto" id="edit_id_es_remoto" value="false">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Cantidad de Posiciones a Cubrir</label>
+                        <div class="segmented-control">
+                            <input type="radio" id="edit_vac_1" name="cantidad_posiciones" value="1">
+                            <label for="edit_vac_1">1</label>
+                            
+                            <input type="radio" id="edit_vac_2" name="cantidad_posiciones" value="2">
+                            <label for="edit_vac_2">2</label>
+                            
+                            <input type="radio" id="edit_vac_3" name="cantidad_posiciones" value="3">
+                            <label for="edit_vac_3">3</label>
+                            
+                            <input type="radio" id="edit_vac_5" name="cantidad_posiciones" value="5">
+                            <label for="edit_vac_5">5+</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 4: Ubicación & Edad -->
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Ubicación del Puesto</label>
+                        <input type="text" name="ubicacion_puesto" id="edit_ubicacion_puesto" class="form-control" placeholder="Ej: CABA, Argentina">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rango de Edad Recomendado</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <select id="edit_edad_min" class="form-control" style="flex: 1; height: 38px;" onchange="updateEdadRango('edit')">
+                                <option value="" selected disabled>Mín</option>
+                                {% for age in "x"|rjust:"63" %}
+                                    <option value="{{ forloop.counter|add:17 }}">{{ forloop.counter|add:17 }}</option>
+                                {% endfor %}
+                            </select>
+                            <span style="color: var(--text-dim);">a</span>
+                            <select id="edit_edad_max" class="form-control" style="flex: 1; height: 38px;" onchange="updateEdadRango('edit')">
+                                <option value="" selected disabled>Máx</option>
+                                {% for age in "x"|rjust:"63" %}
+                                    <option value="{{ forloop.counter|add:17 }}">{{ forloop.counter|add:17 }}</option>
+                                {% endfor %}
+                            </select>
+                            <span style="color: var(--text-dim); white-space: nowrap;">años</span>
+                        </div>
+                        <input type="hidden" name="edad_rango" id="edit_edad_rango_val">
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Zona de Residencia sugerida</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <select id="edit_zona_select" class="form-control" style="flex: 1; height: 38px;" onchange="handleZonaChange('edit')">
+                                <option value="" selected disabled>-- Selecciona ubicación --</option>
+                                <option value="CABA">CABA (Ciudad Autónoma de Buenos Aires)</option>
+                                <option value="GBA Norte">GBA Norte</option>
+                                <option value="GBA Sur">GBA Sur</option>
+                                <option value="GBA Oeste">GBA Oeste</option>
+                                <option value="Buenos Aires (Provincia)">Buenos Aires (Provincia)</option>
+                                <option value="Rosario, Santa Fe">Rosario, Santa Fe</option>
+                                <option value="Santa Fe (Provincia)">Santa Fe (Provincia)</option>
+                                <option value="Córdoba (Capital)">Córdoba (Capital)</option>
+                                <option value="Córdoba (Provincia)">Córdoba (Provincia)</option>
+                                <option value="Mendoza">Mendoza</option>
+                                <option value="Tucumán">Tucumán</option>
+                                <option value="Entre Ríos">Entre Ríos</option>
+                                <option value="Salta">Salta</option>
+                                <option value="Neuquén">Neuquén</option>
+                                <option value="Río Negro">Río Negro</option>
+                                <option value="Chubut">Chubut</option>
+                                <option value="Santa Cruz">Santa Cruz</option>
+                                <option value="Tierra del Fuego">Tierra del Fuego</option>
+                                <option value="San Juan">San Juan</option>
+                                <option value="San Luis">San Luis</option>
+                                <option value="La Pampa">La Pampa</option>
+                                <option value="Catamarca">Catamarca</option>
+                                <option value="La Rioja">La Rioja</option>
+                                <option value="Santiago del Estero">Santiago del Estero</option>
+                                <option value="Chaco">Chaco</option>
+                                <option value="Corrientes">Corrientes</option>
+                                <option value="Misiones">Misiones</option>
+                                <option value="Formosa">Formosa</option>
+                                <option value="Jujuy">Jujuy</option>
+                                <option value="otro">Otro (Ingreso manual)</option>
+                            </select>
+                            <input type="text" name="zona_residencia" id="edit_zona_text" class="form-control" style="flex: 1.2; display: none;" placeholder="Escribe la zona personalizada...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LÓGICA DE ASIGNACIÓN MULTIPLE/GRUPO/TODOS (EDICIÓN) -->
+                <div class="form-group" style="margin-top: 1rem; background: rgba(0, 0, 0, 0.02); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border);">
+                    <label class="form-label" style="font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">Asignación de Selectores</label>
+                    <div class="segmented-control" style="margin-bottom: 1rem;">
+                        <input type="radio" id="edit_tipo_asignacion_unico" name="tipo_asignacion" value="unico" onclick="toggleAssignmentFields('edit')">
+                        <label for="edit_tipo_asignacion_unico">Único</label>
+                        
+                        <input type="radio" id="edit_tipo_asignacion_todos" name="tipo_asignacion" value="todos" onclick="toggleAssignmentFields('edit')">
+                        <label for="edit_tipo_asignacion_todos">Todos</label>
+                        
+                        <input type="radio" id="edit_tipo_asignacion_grupo" name="tipo_asignacion" value="grupo" onclick="toggleAssignmentFields('edit')">
+                        <label for="edit_tipo_asignacion_grupo">Grupo</label>
+                        
+                        <input type="radio" id="edit_tipo_asignacion_multiples" name="tipo_asignacion" value="multiples" onclick="toggleAssignmentFields('edit')">
+                        <label for="edit_tipo_asignacion_multiples">Múltiple</label>
+                    </div>
+
+                    <!-- Single Selector Field -->
+                    <div id="edit_div_asignacion_unico" class="edit-assignment-field-group">
+                        <label class="form-label">Selector Responsable</label>
+                        <select name="selector_asignado_id" id="edit_selector_asignado_id" class="form-control" style="padding: 0.6rem 1rem;">
+                            <option value="">Sin Asignar</option>
+                            {% for selector in selectores %}
+                                <option value="{{ selector.id }}">{{ selector.nombre }} {{ selector.apellido }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Group Selector Field -->
+                    <div id="edit_div_asignacion_grupo" class="edit-assignment-field-group" style="display: none;">
+                        <label class="form-label">Grupo de Selectores</label>
+                        <select name="grupo_asignado_id" id="edit_grupo_asignado_id" class="form-control" style="padding: 0.6rem 1rem;">
+                            <option value="">Selecciona un grupo...</option>
+                            {% for grupo in grupos %}
+                                <option value="{{ grupo.id }}">{{ grupo.nombre }} ({{ grupo.selectores.count }} selectores)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Multiple Selectors Field -->
+                    <div id="edit_div_asignacion_multiples" class="edit-assignment-field-group" style="display: none;">
+                        <label class="form-label">Seleccionar uno o más Selectores</label>
+                        <div style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem; background: var(--bg-main);">
+                            {% for selector in selectores %}
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                    <input type="checkbox" name="selectores_asignados_ids" value="{{ selector.id }}" id="edit_sel_check_{{ selector.id }}">
+                                    <label for="edit_sel_check_{{ selector.id }}" style="font-size: 0.85rem; cursor: pointer; color: var(--text-main);">{{ selector.nombre }} {{ selector.apellido }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 5: Salarios -->
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Salario Mínimo Mensual ($ ARS)</label>
+                        <input type="number" name="salario_minimo" id="edit_salario_minimo" class="form-control" placeholder="Ej: 800000" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Salario Máximo Mensual ($ ARS)</label>
+                        <input type="number" name="salario_maximo" id="edit_salario_maximo" class="form-control" placeholder="Ej: 1200000" min="0">
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 3: Descripción Detallada del Perfil -->
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 1.75rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.35rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+                    <i data-lucide="align-left" style="width: 16px;"></i>
+                    Descripción Detallada del Perfil Requerido
+                </h3>
+
+                <div class="form-group">
+                    <label class="form-label">Misión u Objetivo Principal del Puesto *</label>
+                    <textarea name="mision_puesto" id="edit_mision_puesto" class="form-control" rows="2" required placeholder="Define brevemente el propósito del puesto..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Descripción General o Resumen Corto</label>
+                    <textarea name="descripcion" id="edit_descripcion" class="form-control" rows="2" placeholder="Resumen rápido o notas del cliente..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Candidato Ideal (Resumen del perfil ideal)</label>
+                    <textarea name="candidato_ideal" id="edit_candidato_ideal" class="form-control" rows="2" placeholder="Buscamos un profesional con sólida experiencia..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Preguntas Filtro para el Informe (una por línea)</label>
+                    <textarea name="preguntas_informe" id="edit_preguntas_informe" class="form-control" rows="3" placeholder="¿Tenés experiencia liquidando Ganancias?&#10;¿Tuviste equipo a cargo?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Responsabilidades y Tareas Clave (una por línea)</label>
+                    <textarea name="responsabilidades" id="edit_responsabilidades" class="form-control" rows="3" placeholder="- Tarea o responsabilidad 1&#10;- Tarea o responsabilidad 2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Requisitos Excluyentes / Indispensables (uno por línea)</label>
+                    <textarea name="requisitos_excluyentes" id="edit_requisitos_excluyentes" class="form-control" rows="3" placeholder="- Requisito excluyente 1&#10;- Requisito excluyente 2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Requisitos Deseables / Valorados (uno por línea)</label>
+                    <textarea name="requisitos_deseables" id="edit_requisitos_deseables" class="form-control" rows="3" placeholder="- Deseable 1&#10;- Deseable 2"></textarea>
+                </div>
+
+                <div class="form-group">
+                     <label class="form-label">Educación Mínima</label>
+                     <select name="educacion_minima" id="edit_educacion_minima" class="form-control" style="height: 38px;">
+                         <option value="" disabled>-- Selecciona Educación Mínima --</option>
+                         <option value="Secundario Completo">Secundario Completo</option>
+                         <option value="Terciario en Curso">Terciario en Curso</option>
+                         <option value="Terciario Completo">Terciario Completo</option>
+                         <option value="Universitario en Curso">Universitario en Curso</option>
+                         <option value="Universitario Completo">Universitario Completo</option>
+                         <option value="Posgrado / Maestría">Posgrado / Maestría</option>
+                         <option value="Sin Especificar">Sin Especificar</option>
+                     </select>
+                 </div>
+ 
+                 <div class="form-group">
+                     <label class="form-label">Beneficios y Perks (uno por línea)</label>
+                     <textarea name="beneficios" id="edit_beneficios" class="form-control" rows="2" placeholder="- Medicina prepaga&#10;- Clases de inglés"></textarea>
+                     <div style="margin-top: 0.5rem;">
+                         <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.35rem;">Sugeridos (haz clic para agregar/quitar):</div>
+                         <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem;" id="perks_suggestions_edit">
+                             <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('edit', 'Medicina Prepaga')">🩺 Medicina Prepaga</button>
+                             <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('edit', 'Modalidad Híbrida / Home Office')">🏠 Home Office / Híbrido</button>
+                             <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('edit', 'Horarios Flexibles')">⏱️ Horarios Flexibles</button>
+                             <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('edit', 'Capacitación / Clases de Inglés')">📚 Clases de Inglés</button>
+                             <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('edit', 'Revisión Salarial Periódica')">📈 Ajustes Salariales</button>
+                             <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('edit', 'Tarjeta de Almuerzo / Comedor')">🍔 Almuerzo / Comedor</button>
+                             <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('edit', 'Gimnasio Bonificado')">💪 Gimnasio</button>
+                             <button type="button" class="badge badge-gray" style="border: 1px solid var(--border); padding: 0.25rem 0.5rem; cursor: pointer; background: var(--bg-main);" onclick="togglePerk('edit', 'Día de Cumpleaños Libre')">🎉 Cumpleaños Libre</button>
+                         </div>
+                         <div style="display: flex; gap: 0.35rem; align-items: center;">
+                             <input type="text" id="custom_perk_edit" class="form-control" style="height: 32px; font-size: 0.8rem; padding: 0.25rem 0.5rem;" placeholder="Otro beneficio...">
+                             <button type="button" class="btn btn-secondary" style="height: 32px; padding: 0 0.75rem; font-size: 0.8rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem;" onclick="addCustomPerk('edit')">
+                                 <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Agregar
+                             </button>
+                         </div>
+                     </div>
+                 </div>
+
+                <div class="form-row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Horarios de Descansos / Breaks</label>
+                        <input type="text" name="descansos" id="edit_descansos" class="form-control" placeholder="Ej: 10 min desayuno, 40 min almuerzo">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label">Observaciones o Notas de Entrega importantes</label>
+                    <textarea name="observaciones" id="edit_observaciones" class="form-control" rows="2" placeholder="Ej: SI O SI PARA PRESENTAR CANDIDATOS VAMOS A NECESITAR NÚMERO DNI"></textarea>
+                </div>
+
+                <!-- SECCIÓN 4: Catálogo de Habilidades (Index Seleccionable) -->
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 1.75rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem;">
+                    <i data-lucide="tags" style="width: 16px;"></i>
+                    Habilidades y Tecnologías Requeridas (Index de Skills)
+                </h3>
+                <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 1rem;">
+                    Haz clic sobre las habilidades que requiere el puesto para seleccionarlas e integrarlas automáticamente.
+                </p>
+
+                <!-- Hidden Input to submit active skills -->
+                <input type="hidden" name="habilidades_requeridas" id="edit_id_habilidades_requeridas" value="">
+
+                <div class="skills-catalog-container" style="max-height: 180px;">
+                    <div id="edit_skills-catalog-content">
+                        <!-- Populated by JavaScript catalog -->
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer" id="modalEditarBusquedaFooter">
+                <button type="button" class="btn btn-secondary" onclick="toggleModal('modalEditarBusqueda')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Cambios del Perfil</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Creador de Flyers Promocionales -->
+<div class="modal-overlay" id="modalCrearFlyer" style="z-index: 1100;">
+    <div class="modal-content" style="max-width: 1000px; width: 95%;">
+        <div class="modal-header">
+            <div class="modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="palette" style="width: 22px; color: var(--secondary);"></i>
+                Diseñador de Flyers Promocionales
+            </div>
+            <button class="modal-close" onclick="toggleModal('modalCrearFlyer')">
+                <i data-lucide="x" style="width: 20px;"></i>
+            </button>
+        </div>
+        <div class="modal-body" style="padding: 1.5rem 2rem; display: flex; gap: 2rem; max-height: 75vh; overflow-y: auto;">
+            <!-- Columna 1: Editor de Contenido -->
+            <div style="flex: 1.1; display: flex; flex-direction: column; gap: 1.25rem;">
+                <h4 style="margin: 0; font-size: 0.95rem; color: var(--primary); font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+                    1. Configurar Cabecera (Imagen)
+                </h4>
+                
+                <div>
+                    <label class="form-label" style="margin-bottom: 0.5rem;">Elegir Imagen de Stock Temática</label>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <button type="button" class="btn-theme-img" id="btn_theme_it" onclick="setThemeHeader('it')" style="padding: 0.5rem 0.4rem; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: #fff; font-size: 0.75rem; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                            <span style="font-size: 1.25rem;">💻</span> IT / Software
+                        </button>
+                        <button type="button" class="btn-theme-img" id="btn_theme_comercial" onclick="setThemeHeader('comercial')" style="padding: 0.5rem 0.4rem; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: #fff; font-size: 0.75rem; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                            <span style="font-size: 1.25rem;">🤝</span> Comercial
+                        </button>
+                        <button type="button" class="btn-theme-img" id="btn_theme_admin" onclick="setThemeHeader('admin')" style="padding: 0.5rem 0.4rem; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: #fff; font-size: 0.75rem; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                            <span style="font-size: 1.25rem;">📊</span> Administrativo
+                        </button>
+                        <button type="button" class="btn-theme-img" id="btn_theme_tecnico" onclick="setThemeHeader('tecnico')" style="padding: 0.5rem 0.4rem; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: #fff; font-size: 0.75rem; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                            <span style="font-size: 1.25rem;">🔧</span> Técnico / Ind.
+                        </button>
+                    </div>
+                    
+                    <label class="form-label" style="margin-bottom: 0.25rem; font-size: 0.8rem; color: var(--text-dim);">O cargar una imagen personalizada desde tu PC</label>
+                    <input type="file" id="flyer_custom_file" accept="image/*" class="form-control" onchange="uploadCustomHeader(this)" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; height: auto;">
+                </div>
+
+                <h4 style="margin: 0; font-size: 0.95rem; color: var(--primary); font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; margin-top: 0.5rem;">
+                    2. Modificar Textos
+                </h4>
+                
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 0.5rem;">
+                        <label class="form-label">Título de Llamada *</label>
+                        <input type="text" id="flyer_title" class="form-control" value="BUSCAMOS" oninput="drawFlyer()">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0.5rem;">
+                        <label class="form-label">Puesto / Vacante *</label>
+                        <input type="text" id="flyer_puesto" class="form-control" oninput="drawFlyer()">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0.5rem;">
+                    <label class="form-label">Requisitos Excluyentes (Máximo 3 recomendados)</label>
+                    <input type="text" id="flyer_bullet1" class="form-control" style="margin-bottom: 0.35rem;" placeholder="Ej: +3 años de experiencia en roles comerciales" oninput="drawFlyer()">
+                    <input type="text" id="flyer_bullet2" class="form-control" style="margin-bottom: 0.35rem;" placeholder="Ej: Experiencia trabajando con canales B2B" oninput="drawFlyer()">
+                    <input type="text" id="flyer_bullet3" class="form-control" placeholder="Ej: Inglés intermedio / avanzado" oninput="drawFlyer()">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 0.5rem;">
+                        <label class="form-label">📍 Ubicación / Zona *</label>
+                        <input type="text" id="flyer_location" class="form-control" placeholder="Ej: Capital Federal" oninput="drawFlyer()">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0.5rem;">
+                        <label class="form-label">🕒 Horarios / Modidad *</label>
+                        <input type="text" id="flyer_schedule" class="form-control" placeholder="Ej: Full Time - 100% presencial" oninput="drawFlyer()">
+                    </div>
+                </div>
+
+                <h4 style="margin: 0; font-size: 0.95rem; color: var(--primary); font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; margin-top: 0.5rem;">
+                    3. Personalización y Estilo
+                </h4>
+                
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 0.5rem; flex: 1;">
+                        <label class="form-label" style="margin-bottom: 0.35rem;">Color de Fondo (Mitad Inferior)</label>
+                        <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                            <button type="button" class="btn-color-preset" onclick="setBgColor('#081026')" style="width: 26px; height: 26px; border-radius: 50%; background: #081026; border: 2px solid var(--border); cursor: pointer;" title="Navy corporativo"></button>
+                            <button type="button" class="btn-color-preset" onclick="setBgColor('#121212')" style="width: 26px; height: 26px; border-radius: 50%; background: #121212; border: 2px solid var(--border); cursor: pointer;" title="Negro oscuro"></button>
+                            <button type="button" class="btn-color-preset" onclick="setBgColor('#1f082e')" style="width: 26px; height: 26px; border-radius: 50%; background: #1f082e; border: 2px solid var(--border); cursor: pointer;" title="Púrpura elegante"></button>
+                            <button type="button" class="btn-color-preset" onclick="setBgColor('#2b0815')" style="width: 26px; height: 26px; border-radius: 50%; background: #2b0815; border: 2px solid var(--border); cursor: pointer;" title="Borravino premium"></button>
+                            <button type="button" class="btn-color-preset" onclick="setBgColor('#051f16')" style="width: 26px; height: 26px; border-radius: 50%; background: #051f16; border: 2px solid var(--border); cursor: pointer;" title="Verde botella"></button>
+                            <input type="color" id="flyer_bg_color" value="#081026" oninput="setBgColor(this.value, false)" style="width: 32px; height: 32px; padding: 0; border: none; border-radius: 6px; cursor: pointer; background: transparent; display: block;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 0.5rem; flex: 1;">
+                        <label class="form-label" style="margin-bottom: 0.35rem;">Cargar Logotipo Corporativo</label>
+                        <input type="file" id="flyer_logo_file" accept="image/*" class="form-control" onchange="uploadCustomLogo(this)" style="padding: 0.4rem 0.8rem; font-size: 0.82rem; height: auto;">
+                        <span style="font-size: 0.72rem; color: var(--text-dim); display: block; margin-top: 0.2rem;">Sube un PNG con fondo transparente (se redimensionará automáticamente).</span>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 0.5rem; flex: 1;">
+                        <label class="form-label">Marca Línea Principal (Texto)</label>
+                        <input type="text" id="flyer_brand_main" class="form-control" value="ConfiaRH" oninput="drawFlyer()">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0.5rem; flex: 1;">
+                        <label class="form-label">Marca Línea Secundaria</label>
+                        <input type="text" id="flyer_brand_sub" class="form-control" value="Recursos Humanos" oninput="drawFlyer()">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Columna 2: Vista Previa en Vivo -->
+            <div style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 1rem;">
+                <h4 style="margin: 0; font-size: 0.95rem; color: var(--primary); font-weight: 700; width: 100%; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; text-align: left;">
+                    Vista Previa (Diseño 1:1)
+                </h4>
+                <div style="width: 100%; max-width: 350px; aspect-ratio: 1; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+                    <canvas id="flyerCanvas" width="1080" height="1080" style="width: 100%; height: 100%; display: block; background: #fff;"></canvas>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-dim); text-align: center; line-height: 1.3;">
+                    Se generará una imagen ultra nítida de 1080x1080px (PNG/JPG) perfecta para Instagram, LinkedIn o WhatsApp.
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="gap: 0.5rem;">
+            <input type="hidden" id="current_busqueda_id_for_flyer">
+            <button type="button" class="btn btn-secondary" onclick="toggleModal('modalCrearFlyer')">Cancelar</button>
+            <button type="button" class="btn btn-secondary" onclick="descargarFlyerLocal()" style="border-color: var(--secondary); color: var(--secondary); display: inline-flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+                Descargar JPG
+            </button>
+            <button type="button" class="btn btn-primary" onclick="guardarYAdjuntarFlyer()" id="btnGuardarFlyer" style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                Guardar y Adjuntar a Búsqueda
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal.classList.contains('active')) {
+            modal.classList.remove('active');
+        } else {
+            modal.classList.add('active');
+        }
+    }
+
+    // Catálogos para autocomplete e index seleccionable
+    const CATALOGO_HABILIDADES = {
+        "Administración y Contabilidad": [
+            "Facturación", "Conciliación Bancaria", "Cuentas a Pagar", "Cuentas a Cobrar",
+            "Liquidación de Sueldos", "Liquidación de Impuestos", "Softland", "Excel Avanzado",
+            "Cuentas Corrientes", "Auditoría de Stock", "Gestión Documental", "SAP CO/FI",
+            "Bejerman", "Tango Gestión"
+        ],
+        "Tecnología e IT": [
+            "Python", "Django", "React.js", "SQL", "Git / GitHub", "PLC", "Programación Industrial",
+            "Node.js", "JavaScript", "HTML5 & CSS3", "AWS", "Docker", "Sistemas Embebidos"
+        ],
+        "Técnicos e Industrial": [
+            "Mantenimiento Electromecánico", "Refrigeración Industrial", "Electricidad Industrial",
+            "Mecánica General", "Soldadura", "Operación de Autoelevador / Clark", "Normas de Seguridad",
+            "Lectura de Planos", "Neumática", "Hidráulica"
+        ],
+        "Comercial y Ventas": [
+            "Ventas Consultivas", "Negociación", "Telemarketing", "Atención al Cliente",
+            "Fidelización", "Análisis de Riesgo Crediticio", "Gestión de Cartera", "Cold Calling"
+        ],
+        "Recursos Humanos": [
+            "Sourcing de Candidatos", "Entrevistas por Competencias", "Reclutamiento IT",
+            "LinkedIn Recruiter", "Evaluación de Desempeño", "Capacitación y Desarrollo",
+            "Cultura Organizacional"
+        ],
+        "General y Operaciones": [
+            "Trabajo en Equipo", "Comunicación Asertiva", "Resolución de Conflictos",
+            "Liderazgo", "Atención al Detalle", "Hostess / Recepción", "Cocina General",
+            "Logística y Despacho", "Inventarios"
+        ]
+    };
+
+    const CATALOGO_PUESTOS = [
+        "Analista Contable",
+        "Analista de Cuentas a Pagar",
+        "Analista de Cobranzas",
+        "Analista de Impuestos",
+        "Analista de Facturación",
+        "Analista de Selección de Personal",
+        "Analista de Riesgo Crediticio",
+        "Asistente Administrativo",
+        "Administrativo Contable",
+        "Contador Público",
+        "Liquidador de Sueldos (Softland)",
+        "Supervisor de Logística",
+        "Auxiliar de Depósito",
+        "Auditor de Inventario",
+        "Ejecutivo Comercial",
+        "Vendedor / Vendedora de Créditos",
+        "Referente Comercial",
+        "Operario de Producción",
+        "Personal Técnico de Mantenimiento",
+        "Técnico Mecánico / Electromecánico",
+        "Técnico en Refrigeración Industrial",
+        "Sub encargado de Farmacia",
+        "Cocinero",
+        "Hostess / Recepcionista",
+        "Programador PLC",
+        "Analista de Marketing Digital",
+        "Community Manager"
+    ];
+
+    // Cargar Catálogos dinámicamente al iniciar
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Renderizar habilidades del catálogo
+        const container = document.getElementById("skills-catalog-content");
+        const editContainer = document.getElementById("edit_skills-catalog-content");
+        
+        let html = "";
+        let editHtml = "";
+        for (const [category, skills] of Object.entries(CATALOGO_HABILIDADES)) {
+            html += `
+                <div class="skills-category">
+                    <div class="skills-category-title">${category}</div>
+                    <div class="skills-grid">
+            `;
+            editHtml += `
+                <div class="skills-category">
+                    <div class="skills-category-title">${category}</div>
+                    <div class="skills-grid">
+            `;
+            skills.forEach(skill => {
+                html += `
+                    <button type="button" class="skill-badge-btn" onclick="toggleSkill(this, '${skill}')">
+                        ${skill}
+                    </button>
+                `;
+                editHtml += `
+                    <button type="button" class="skill-badge-btn edit-skill-btn" data-skill="${skill}" onclick="toggleEditSkill(this, '${skill}')">
+                        ${skill}
+                    </button>
+                `;
+            });
+            html += `
+                    </div>
+                </div>
+            `;
+            editHtml += `
+                    </div>
+                </div>
+            `;
+        }
+        if (container) container.innerHTML = html;
+        if (editContainer) editContainer.innerHTML = editHtml;
+
+        // 2. Crear datalist de puestos si no existe
+        let datalist = document.getElementById("job-titles");
+        if (!datalist) {
+            datalist = document.createElement("datalist");
+            datalist.id = "job-titles";
+            CATALOGO_PUESTOS.forEach(title => {
+                const opt = document.createElement("option");
+                opt.value = title;
+                datalist.appendChild(opt);
+            });
+            document.body.appendChild(datalist);
+        }
+    });
+
+    // Estado local de habilidades seleccionadas
+    const habilidadesSeleccionadas = new Set();
+
+    function toggleSkill(btn, skillName) {
+        if (habilidadesSeleccionadas.has(skillName)) {
+            habilidadesSeleccionadas.delete(skillName);
+            btn.classList.remove("active");
+        } else {
+            habilidadesSeleccionadas.add(skillName);
+            btn.classList.add("active");
+        }
+        
+        // Actualizar input oculto
+        const hiddenInput = document.getElementById("id_habilidades_requeridas");
+        if (hiddenInput) {
+            hiddenInput.value = Array.from(habilidadesSeleccionadas).join(", ");
+        }
+    }
+
+    // Estado local de habilidades seleccionadas en la edición
+    const habilidadesEditSeleccionadas = new Set();
+
+    function toggleEditSkill(btn, skillName) {
+        if (habilidadesEditSeleccionadas.has(skillName)) {
+            habilidadesEditSeleccionadas.delete(skillName);
+            btn.classList.remove("active");
+        } else {
+            habilidadesEditSeleccionadas.add(skillName);
+            btn.classList.add("active");
+        }
+        
+        // Actualizar input oculto
+        const hiddenInput = document.getElementById("edit_id_habilidades_requeridas");
+        if (hiddenInput) {
+            hiddenInput.value = Array.from(habilidadesEditSeleccionadas).join(", ");
+        }
+    }
+
+    function setRemoto(isRemoto) {
+        const inputEsRemoto = document.getElementById("id_es_remoto");
+        const inputUbicacion = document.getElementById("id_ubicacion_puesto");
+        if (inputEsRemoto) {
+            inputEsRemoto.value = isRemoto ? "true" : "false";
+        }
+        if (inputUbicacion) {
+            if (isRemoto) {
+                inputUbicacion.value = "100% Remoto";
+                inputUbicacion.readOnly = true;
+            } else {
+                if (inputUbicacion.value === "100% Remoto") {
+                    inputUbicacion.value = "CABA, Argentina";
+                }
+                inputUbicacion.readOnly = false;
+            }
+        }
+    }
+
+    // ==========================================
+    // LÓGICA DEL CREADOR / DISEÑADOR DE FLYERS
+    // ==========================================
+    
+    // Imagenes stock temáticas de alta calidad (Unsplash)
+    const FLYER_THEMES = {
+        'it': 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1080&q=80',
+        'comercial': 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=1080&q=80',
+        'admin': 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1080&q=80',
+        'tecnico': 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1080&q=80'
+    };
+
+    let currentHeaderSrc = FLYER_THEMES['comercial'];
+    let currentHeaderImage = null;
+    let currentBgColor = '#081026';
+    let customLogoImage = null;
+
+    // Cambiar la color de fondo de la mitad inferior
+    function setBgColor(color, updatePicker = true) {
+        currentBgColor = color;
+        if (updatePicker) {
+            const picker = document.getElementById('flyer_bg_color');
+            if (picker) picker.value = color;
+        }
+        
+        // Resaltar preset activo
+        document.querySelectorAll('.btn-color-preset').forEach(btn => {
+            const rgbToHex = (rgb) => {
+                if (!rgb) return '';
+                if (rgb.startsWith('#')) return rgb.toLowerCase();
+                const rgbValues = rgb.match(/\d+/g);
+                if (!rgbValues) return '';
+                return '#' + rgbValues.map(x => {
+                    const hex = parseInt(x).toString(16);
+                    return hex.length === 1 ? '0' + hex : hex;
+                }).join('');
+            };
+            if (rgbToHex(btn.style.backgroundColor) === color.toLowerCase()) {
+                btn.style.borderColor = 'var(--secondary)';
+                btn.style.boxShadow = '0 0 6px rgba(242, 161, 52, 0.4)';
+            } else {
+                btn.style.borderColor = 'var(--border)';
+                btn.style.boxShadow = 'none';
+            }
+        });
+        
+        drawFlyer();
+    }
+
+    // Cargar y almacenar el logotipo de la consultora
+    function uploadCustomLogo(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    customLogoImage = img;
+                    drawFlyer();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            customLogoImage = null;
+            drawFlyer();
+        }
+    }
+
+    // Eliminar flyer asociado
+    function eliminarFlyer(busquedaId) {
+        if (!confirm('¿Estás seguro de que deseas eliminar el flyer de esta búsqueda?')) return;
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', csrfToken);
+
+        fetch(`/busquedas/eliminar-flyer/${busquedaId}/`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('¡Flyer eliminado exitosamente!');
+                window.location.reload();
+            } else {
+                alert('Error al eliminar flyer: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de red al intentar eliminar el flyer.');
+        });
+    }
+
+    // Abrir modal y pre-cargar datos de la búsqueda
+    function abrirCreadorFlyer(id, puesto, empresa, requisitosExcluyentes, ubicacion, jornada, area) {
+        document.getElementById('current_busqueda_id_for_flyer').value = id;
+        document.getElementById('flyer_title').value = 'BUSCAMOS';
+        document.getElementById('flyer_puesto').value = puesto;
+        document.getElementById('flyer_location').value = ubicacion || 'Capital Federal';
+        document.getElementById('flyer_schedule').value = jornada || 'Full Time - lunes a viernes';
+        
+        // Limpiar el input de archivo
+        document.getElementById('flyer_custom_file').value = '';
+        document.getElementById('flyer_logo_file').value = '';
+        customLogoImage = null;
+
+        // Resetear personalización a valores por defecto
+        document.getElementById('flyer_brand_main').value = 'ConfiaRH';
+        document.getElementById('flyer_brand_sub').value = 'Recursos Humanos';
+        setBgColor('#081026');
+
+        // Separar requisitos excluyentes por línea y tomar hasta 3
+        const lines = requisitosExcluyentes.split('\n')
+            .map(line => line.replace(/^[\s\-•*▶]+/, '').trim())
+            .filter(line => line.length > 0);
+            
+        document.getElementById('flyer_bullet1').value = lines[0] || '';
+        document.getElementById('flyer_bullet2').value = lines[1] || '';
+        document.getElementById('flyer_bullet3').value = lines[2] || '';
+
+        // Selección inteligente de cabecera por Área
+        let defaultTheme = 'comercial';
+        if (area === 'it') defaultTheme = 'it';
+        else if (area === 'admin') defaultTheme = 'admin';
+        else if (area === 'otro') {
+            if (puesto.toLowerCase().includes('técnico') || puesto.toLowerCase().includes('mantenimiento') || puesto.toLowerCase().includes('operario')) {
+                defaultTheme = 'tecnico';
+            }
+        }
+        
+        // Establecer tema inicial
+        setThemeHeader(defaultTheme);
+
+        // Abrir modal
+        toggleModal('modalCrearFlyer');
+    }
+
+    // Cambiar la imagen temática
+    function setThemeHeader(theme) {
+        currentHeaderSrc = FLYER_THEMES[theme] || FLYER_THEMES['comercial'];
+        
+        // Activar botón visualmente
+        document.querySelectorAll('.btn-theme-img').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById(`btn_theme_${theme}`);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        loadHeaderAndDraw();
+    }
+
+    // Subir imagen personalizada desde PC
+    function uploadCustomHeader(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentHeaderSrc = e.target.result;
+                
+                // Desactivar botones de temas por defecto
+                document.querySelectorAll('.btn-theme-img').forEach(btn => btn.classList.remove('active'));
+                
+                loadHeaderAndDraw();
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Cargar la imagen de cabecera y disparar dibujo
+    function loadHeaderAndDraw() {
+        if (!currentHeaderSrc) {
+            currentHeaderImage = null;
+            drawFlyer();
+            return;
+        }
+
+        const img = new Image();
+        img.crossOrigin = "anonymous"; // Evitar problemas de Tainted Canvas si la imagen viene de Unsplash
+        img.onload = function() {
+            currentHeaderImage = img;
+            drawFlyer();
+        };
+        img.onerror = function() {
+            console.error("No se pudo cargar la imagen temática, se usará gradiente de color.");
+            currentHeaderImage = null;
+            drawFlyer();
+        };
+        img.src = currentHeaderSrc;
+    }
+
+    // Helper para envolver y dibujar texto en el canvas
+    function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
+        const words = text.split(' ');
+        let line = '';
+        let currentY = y;
+        
+        for (let n = 0; n < words.length; n++) {
+            let testLine = line + words[n] + ' ';
+            let metrics = ctx.measureText(testLine);
+            let testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                ctx.fillText(line.trim(), x, currentY);
+                line = words[n] + ' ';
+                currentY += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line.trim(), x, currentY);
+        return currentY;
+    }
+
+    // Dibujar el flyer completo en el canvas (1080x1080px)
+    function drawFlyer() {
+        const canvas = document.getElementById('flyerCanvas');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Obtener valores actuales
+        const title = document.getElementById('flyer_title').value.toUpperCase() || 'BUSCAMOS';
+        const puesto = document.getElementById('flyer_puesto').value || 'Puesto Vacante';
+        const bullet1 = document.getElementById('flyer_bullet1').value;
+        const bullet2 = document.getElementById('flyer_bullet2').value;
+        const bullet3 = document.getElementById('flyer_bullet3').value;
+        const location = document.getElementById('flyer_location').value;
+        const schedule = document.getElementById('flyer_schedule').value;
+
+        // Limpiar lienzo
+        ctx.clearRect(0, 0, 1080, 1080);
+
+        // 1. Dibujar Cabecera (Y: 0 a 540)
+        if (currentHeaderImage) {
+            // Dibujar imagen centrada y recortada (object-fit: cover)
+            const imgWidth = currentHeaderImage.width;
+            const imgHeight = currentHeaderImage.height;
+            const targetWidth = 1080;
+            const targetHeight = 540;
+            
+            const imgRatio = imgWidth / imgHeight;
+            const targetRatio = targetWidth / targetHeight;
+            
+            let sx, sy, sWidth, sHeight;
+            if (imgRatio > targetRatio) {
+                sHeight = imgHeight;
+                sWidth = imgHeight * targetRatio;
+                sx = (imgWidth - sWidth) / 2;
+                sy = 0;
+            } else {
+                sWidth = imgWidth;
+                sHeight = imgWidth / targetRatio;
+                sx = 0;
+                sy = (imgHeight - sHeight) / 2;
+            }
+            
+            ctx.drawImage(currentHeaderImage, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
+        } else {
+            // En caso de que falle la carga de la imagen, usar gradiente premium
+            const grad = ctx.createLinearGradient(0, 0, 1080, 540);
+            grad.addColorStop(0, '#0f172a');
+            grad.addColorStop(1, '#1e293b');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 1080, 540);
+            
+            // Icono placeholder
+            ctx.font = '80px "Segoe UI Emoji"';
+            ctx.textAlign = 'center';
+            ctx.fillText('💼', 540, 270);
+            ctx.textAlign = 'left'; // Reset
+        }
+
+        // 2. Dibujar Parte Inferior (Fondo dinámico)
+        ctx.fillStyle = currentBgColor;
+        ctx.fillRect(0, 540, 1080, 540);
+
+        // 3. Dibujar Título Principal (BUSCAMOS)
+        ctx.fillStyle = '#f2a134'; // Naranja corporativo
+        ctx.font = '900 68px "Outfit", "Inter", "Arial Black", sans-serif';
+        ctx.fillText(title, 40, 630);
+
+        // 4. Dibujar Puesto (Sky Blue)
+        ctx.fillStyle = '#74c0fc'; // Celeste/Azul cielo
+        ctx.font = '700 48px "Outfit", "Inter", "Arial", sans-serif';
+        
+        // Medir ancho para posicionar la lupa
+        ctx.fillText(puesto, 40, 700);
+        
+        const puestoWidth = ctx.measureText(puesto).width;
+        ctx.font = '38px "Segoe UI Emoji", "Apple Color Emoji"';
+        ctx.fillText('🔍', Math.min(40 + puestoWidth + 20, 1000), 696);
+
+        // 5. Contenedor de Requisitos (Tarjeta Blanca con esquinas redondeadas)
+        ctx.fillStyle = '#ffffff';
+        
+        // Dibujar Rectángulo Redondeado
+        const rectX = 40;
+        const rectY = 740;
+        const rectW = 1000;
+        const rectH = 265;
+        const radius = 16;
+        
+        ctx.beginPath();
+        ctx.moveTo(rectX + radius, rectY);
+        ctx.lineTo(rectX + rectW - radius, rectY);
+        ctx.quadraticCurveTo(rectX + rectW, rectY, rectX + rectW, rectY + radius);
+        ctx.lineTo(rectX + rectW, rectY + rectH - radius);
+        ctx.quadraticCurveTo(rectX + rectW, rectY + rectH, rectX + rectW - radius, rectY + rectH);
+        ctx.lineTo(rectX + radius, rectY + rectH);
+        ctx.quadraticCurveTo(rectX, rectY + rectH, rectX, rectY + rectH - radius);
+        ctx.lineTo(rectX, rectY + radius);
+        ctx.quadraticCurveTo(rectX, rectY, rectX + radius, rectY);
+        ctx.closePath();
+        ctx.fill();
+
+        // 6. Dibujar Contenido dentro de la Tarjeta Blanca
+        let textY = 790;
+        ctx.font = '500 24px "Inter", "Segoe UI", sans-serif';
+        const maxWidth = 860;
+        const lineHeight = 32;
+
+        // Bullets de requisitos
+        const bullets = [bullet1, bullet2, bullet3].filter(b => b.trim().length > 0);
+        
+        bullets.forEach((bullet) => {
+            // Dibujar flecha azul
+            ctx.fillStyle = '#3a86ff'; // Azul brillante para los iconos
+            ctx.font = '700 22px "Inter", sans-serif';
+            ctx.fillText('▶', 70, textY);
+            
+            // Dibujar texto
+            ctx.fillStyle = '#1e293b'; // Slate 800 para legibilidad
+            ctx.font = '500 24px "Inter", "Segoe UI", sans-serif';
+            const endY = drawWrappedText(ctx, bullet, 110, textY, maxWidth, lineHeight);
+            textY = endY + 36;
+        });
+
+        // 7. Iconos fijos de la tarjeta (Ubicación y Jornada)
+        // Forzar espacio al final de la lista si los bullets son pocos para que queden abajo
+        const minActionsY = 935;
+        if (textY < minActionsY) textY = minActionsY;
+
+        if (location) {
+            // Icono Pin de Ubicación (Rojo)
+            ctx.font = '28px "Segoe UI Emoji", "Apple Color Emoji"';
+            ctx.fillText('📍', 70, textY);
+            
+            ctx.fillStyle = '#1e293b';
+            ctx.font = '500 24px "Inter", "Segoe UI", sans-serif';
+            ctx.fillText(location, 110, textY);
+            textY += 45;
+        }
+
+        if (schedule) {
+            // Icono Reloj de Jornada (Azul)
+            ctx.font = '28px "Segoe UI Emoji", "Apple Color Emoji"';
+            ctx.fillText('🕒', 70, textY);
+            
+            ctx.fillStyle = '#1e293b';
+            ctx.font = '500 24px "Inter", "Segoe UI", sans-serif';
+            ctx.fillText(schedule, 110, textY);
+        }
+
+        // 8. Logo de Marca o Leyenda de Consultora (Fondo inferior derecho)
+        if (customLogoImage) {
+            const maxLogoW = 200;
+            const maxLogoH = 65;
+            let logoW = customLogoImage.width;
+            let logoH = customLogoImage.height;
+            
+            // Redimensionar proporcionalmente para encajar en límites
+            if (logoW > maxLogoW) {
+                logoH = (maxLogoW / logoW) * logoH;
+                logoW = maxLogoW;
+            }
+            if (logoH > maxLogoH) {
+                logoW = (maxLogoH / logoH) * logoW;
+                logoH = maxLogoH;
+            }
+            
+            // Dibujar alineado a la derecha inferior
+            const logoX = 1040 - logoW;
+            const logoY = 1055 - logoH;
+            ctx.drawImage(customLogoImage, logoX, logoY, logoW, logoH);
+        } else {
+            const brandMain = document.getElementById('flyer_brand_main').value || 'ConfiaRH';
+            const brandSub = document.getElementById('flyer_brand_sub').value || 'Recursos Humanos';
+            
+            ctx.textAlign = 'right';
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '800 36px "Outfit", "Inter", sans-serif';
+            ctx.fillText(brandMain, 1040, 1035);
+            
+            ctx.fillStyle = '#f2a134';
+            ctx.font = '600 16px "Outfit", sans-serif';
+            ctx.fillText(brandSub, 1040, 1058);
+            
+            ctx.textAlign = 'left'; // Restaurar alineación por defecto
+        }
+    }
+
+    // Descargar flyer localmente en el navegador
+    function descargarFlyerLocal() {
+        const canvas = document.getElementById('flyerCanvas');
+        if (!canvas) return;
+        
+        const puesto = document.getElementById('flyer_puesto').value || 'vacante';
+        const safePuestoName = puesto.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        
+        const link = document.createElement('a');
+        link.download = `flyer_${safePuestoName}.jpg`;
+        link.href = canvas.toDataURL('image/jpeg', 0.95);
+        link.click();
+    }
+
+    // Subir y asociar el flyer a la búsqueda mediante AJAX
+    function guardarYAdjuntarFlyer() {
+        const canvas = document.getElementById('flyerCanvas');
+        if (!canvas) return;
+
+        const busquedaId = document.getElementById('current_busqueda_id_for_flyer').value;
+        const btn = document.getElementById('btnGuardarFlyer');
+        
+        // Estado de carga
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader" class="animate-spin" style="width:16px;"></i> Guardando...';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        // Convertir canvas a base64 (removiendo el header metadata)
+        const base64Data = canvas.toDataURL('image/jpeg', 0.95);
+        
+        // Obtener token CSRF
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+        const formData = new FormData();
+        formData.append('image_data', base64Data);
+        formData.append('csrfmiddlewaretoken', csrfToken);
+
+        fetch(`/busquedas/guardar-flyer/${busquedaId}/`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('¡Flyer generado y adjuntado a la búsqueda exitosamente!');
+                toggleModal('modalCrearFlyer');
+                window.location.reload(); // Recargar para ver los cambios y enlaces reflejados
+            } else {
+                alert('Error al guardar el flyer: ' + (data.message || 'Error desconocido'));
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de red al intentar subir el flyer.');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        });
+    }
+
+    function cambiarPrioridad(busquedaId, prioridad, selectElem) {
+        const colors = {
+            urgente: { bg: 'rgba(255, 69, 58, 0.1)', fg: '#FF453A', border: 'rgba(255, 69, 58, 0.3)' },
+            alta: { bg: 'rgba(255, 159, 10, 0.1)', fg: '#FF9F0A', border: 'rgba(255, 159, 10, 0.3)' },
+            normal: { bg: 'rgba(10, 132, 255, 0.1)', fg: '#0A84FF', border: 'rgba(10, 132, 255, 0.3)' },
+            baja: { bg: 'rgba(142, 142, 147, 0.1)', fg: '#8E8E93', border: 'rgba(142, 142, 147, 0.3)' }
+        };
+        const theme = colors[prioridad] || colors.normal;
+        selectElem.style.background = theme.bg;
+        selectElem.style.color = theme.fg;
+        selectElem.style.borderColor = theme.border;
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        const formData = new FormData();
+        formData.append('prioridad', prioridad);
+        formData.append('csrfmiddlewaretoken', csrfToken);
+
+        fetch(`/busquedas/cambiar-prioridad/${busquedaId}/`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status !== 'success') {
+                alert('Error al cambiar la prioridad: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de red al cambiar la prioridad.');
+        });
+    }
+
+    function toggleAssignmentFields(prefix) {
+        let tipo = 'unico';
+        if (prefix === 'nuevo') {
+            tipo = document.querySelector('input[name="tipo_asignacion"]:checked')?.value || 'unico';
+            
+            document.getElementById('div_asignacion_unico').style.display = (tipo === 'unico') ? 'block' : 'none';
+            document.getElementById('div_asignacion_grupo').style.display = (tipo === 'grupo') ? 'block' : 'none';
+            document.getElementById('div_asignacion_multiples').style.display = (tipo === 'multiples') ? 'block' : 'none';
+        } else {
+            tipo = document.querySelector('#modalEditarBusqueda input[name="tipo_asignacion"]:checked')?.value || 'unico';
+            
+            document.getElementById('edit_div_asignacion_unico').style.display = (tipo === 'unico') ? 'block' : 'none';
+            document.getElementById('edit_div_asignacion_grupo').style.display = (tipo === 'grupo') ? 'block' : 'none';
+            document.getElementById('edit_div_asignacion_multiples').style.display = (tipo === 'multiples') ? 'block' : 'none';
+        }
+    }
+
+    function setFormReadOnly(formId, isReadOnly) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+        const elements = form.querySelectorAll('input, select, textarea');
+        elements.forEach(el => {
+            if (el.name === 'csrfmiddlewaretoken') return;
+            if (isReadOnly) {
+                el.setAttribute('disabled', 'true');
+            } else {
+                el.removeAttribute('disabled');
+            }
+        });
+    }
+
+    function enableEditMode(formId, btnId, footerId) {
+        setFormReadOnly(formId, false);
+        document.getElementById(btnId).style.display = 'none';
+        document.getElementById(footerId).style.display = 'flex';
+    }
+
+    function abrirEditarBusqueda(
+        id, titulo, empresaId, areas, nivel, expAnios, prioridad, vacantes,
+        modalidad, ubicacion, selectorId, salMin, salMax, comision, salarioEstipuladoComision, jornada,
+        jdUrl, flyerUrl, mision, descripcion, responsabilidades, reqExcluyentes,
+        reqDeseables, educacion, beneficios, fechaInicio, observaciones,
+        candidatoIdeal, preguntasInforme, descansos, convenio, edadRango,
+        zonaResidencia, estado, codigoBusqueda, codigoPuesto, codigoTitulo, assignedSelectorIds,
+        readOnlyMode = false
+    ) {
+        const clean = (val) => {
+            if (!val || val === 'None' || val === 'none' || val === 'null' || val === 'undefined') {
+                return '';
+            }
+            return val;
+        };
+
+        const form = document.getElementById('formEditarBusqueda');
+        if (form) {
+            form.action = `/busquedas/editar/${id}/`;
+        }
+
+        // Set text inputs and textareas
+        document.getElementById('edit_titulo_puesto').value = clean(titulo);
+        document.getElementById('edit_empresa_id').value = clean(empresaId);
+        document.getElementById('edit_jornada_laboral').value = clean(jornada);
+        document.getElementById('edit_comision_porcentaje').value = clean(comision);
+        document.getElementById('edit_salario_estipulado_comision').value = clean(salarioEstipuladoComision);
+        document.getElementById('edit_fecha_inicio').value = clean(fechaInicio);
+        document.getElementById('edit_convenio').value = clean(convenio);
+        document.getElementById('edit_jd_url').value = clean(jdUrl);
+        document.getElementById('edit_flyer_url').value = clean(flyerUrl);
+        document.getElementById('edit_codigo_puesto').value = clean(codigoPuesto);
+        document.getElementById('edit_codigo_titulo').value = clean(codigoTitulo);
+        document.getElementById('lbl_codigo_busqueda').innerText = clean(codigoBusqueda) || 'Autogenerado al guardar';
+        document.getElementById('edit_ubicacion_puesto').value = clean(ubicacion);
+        
+        // Asignaciones
+        document.getElementById('edit_selector_asignado_id').value = clean(selectorId);
+        
+        // Reset check boxes
+        document.querySelectorAll('input[id^="edit_sel_check_"]').forEach(cb => {
+            cb.checked = false;
+        });
+
+        // Set check boxes if multiples
+        if (assignedSelectorIds && assignedSelectorIds.length > 0) {
+            assignedSelectorIds.forEach(selId => {
+                const cb = document.getElementById('edit_sel_check_' + selId);
+                if (cb) cb.checked = true;
+            });
+        }
+
+        // Detect assignment type
+        let tipoAsignacion = 'unico';
+        if (assignedSelectorIds && assignedSelectorIds.length > 0) {
+            const totalActiveSelectorsCount = document.querySelectorAll('input[id^="edit_sel_check_"]').length;
+            if (assignedSelectorIds.length === totalActiveSelectorsCount && totalActiveSelectorsCount > 1) {
+                tipoAsignacion = 'todos';
+            } else if (assignedSelectorIds.length > 1) {
+                tipoAsignacion = 'multiples';
+            }
+        }
+        
+        const radioTipo = document.querySelector(`#modalEditarBusqueda input[name="tipo_asignacion"][value="${tipoAsignacion}"]`);
+        if (radioTipo) {
+            radioTipo.checked = true;
+        }
+        
+        // Update display of fields
+        toggleAssignmentFields('edit');
+
+        document.getElementById('edit_salario_minimo').value = clean(salMin) || '0';
+        document.getElementById('edit_salario_maximo').value = clean(salMax) || '0';
+        document.getElementById('edit_mision_puesto').value = clean(mision);
+        document.getElementById('edit_descripcion').value = clean(descripcion);
+        document.getElementById('edit_candidato_ideal').value = clean(candidatoIdeal);
+        document.getElementById('edit_preguntas_informe').value = clean(preguntasInforme);
+        document.getElementById('edit_responsabilidades').value = clean(responsabilidades);
+        document.getElementById('edit_requisitos_excluyentes').value = clean(reqExcluyentes);
+        document.getElementById('edit_requisitos_deseables').value = clean(reqDeseables);
+        // Educación Mínima select fallback
+        const eduSelect = document.getElementById('edit_educacion_minima');
+        const cleanedEdu = clean(educacion);
+        let eduMatch = false;
+        for (let opt of eduSelect.options) {
+            if (opt.value === cleanedEdu) {
+                eduSelect.value = cleanedEdu;
+                eduMatch = true;
+                break;
+            }
+        }
+        if (!eduMatch && cleanedEdu) {
+            const newOpt = new Option(cleanedEdu, cleanedEdu, true, true);
+            eduSelect.add(newOpt);
+        } else if (!cleanedEdu) {
+            eduSelect.value = '';
+        }
+
+        document.getElementById('edit_beneficios').value = clean(beneficios);
+        document.getElementById('edit_descansos').value = clean(descansos);
+        document.getElementById('edit_observaciones').value = clean(observaciones);
+
+        // Edad Rango selects
+        const edadHidden = document.getElementById('edit_edad_rango_val');
+        edadHidden.value = clean(edadRango);
+        const minSelect = document.getElementById('edit_edad_min');
+        const maxSelect = document.getElementById('edit_edad_max');
+        minSelect.value = '';
+        maxSelect.value = '';
+        if (edadRango) {
+            const numbers = clean(edadRango).match(/\d+/g);
+            if (numbers && numbers.length >= 2) {
+                minSelect.value = numbers[0];
+                maxSelect.value = numbers[1];
+            } else if (numbers && numbers.length == 1) {
+                if (clean(edadRango).includes('Desde')) {
+                    minSelect.value = numbers[0];
+                } else if (clean(edadRango).includes('Hasta')) {
+                    maxSelect.value = numbers[0];
+                }
+            }
+        }
+
+        // Zona Residencia select + custom text
+        const zonaSelect = document.getElementById('edit_zona_select');
+        const zonaText = document.getElementById('edit_zona_text');
+        let foundVal = false;
+        const cleanedZona = clean(zonaResidencia);
+        for (let option of zonaSelect.options) {
+            if (option.value === cleanedZona) {
+                zonaSelect.value = cleanedZona;
+                foundVal = true;
+                break;
+            }
+        }
+        if (foundVal) {
+            zonaSelect.name = 'zona_residencia';
+            zonaText.name = 'zona_residencia_custom';
+            zonaText.style.display = 'none';
+        } else if (cleanedZona) {
+            zonaSelect.value = 'otro';
+            zonaText.value = cleanedZona;
+            zonaText.style.display = 'block';
+            zonaText.name = 'zona_residencia';
+            zonaSelect.removeAttribute('name');
+        } else {
+            zonaSelect.value = '';
+            zonaText.value = '';
+            zonaText.style.display = 'none';
+            zonaSelect.name = 'zona_residencia';
+            zonaText.name = 'zona_residencia_custom';
+        }
+
+        // Check radio buttons for areas
+        const areaRadio = document.querySelector(`#modalEditarBusqueda input[name="areas"][value="${areas}"]`);
+        if (areaRadio) areaRadio.checked = true;
+
+        // Check radio buttons for nivel
+        const nivelRadio = document.querySelector(`#modalEditarBusqueda input[name="nivel"][value="${nivel}"]`);
+        if (nivelRadio) nivelRadio.checked = true;
+
+        // Check radio for experience
+        const expRadio = document.querySelector(`#modalEditarBusqueda input[name="experiencia_minima_anios"][value="${expAnios}"]`);
+        if (expRadio) expRadio.checked = true;
+
+        // Check radio for priority
+        const prioRadio = document.querySelector(`#modalEditarBusqueda input[name="prioridad"][value="${prioridad}"]`);
+        if (prioRadio) prioRadio.checked = true;
+
+        // Check radio for modality
+        const modRadio = document.querySelector(`#modalEditarBusqueda input[name="modalidad_trabajo"][value="${modalidad}"]`);
+        if (modRadio) modRadio.checked = true;
+        document.getElementById('edit_id_es_remoto').value = (modalidad === 'remoto') ? 'true' : 'false';
+
+        // Check radio for vacancy positions
+        const vacRadio = document.querySelector(`#modalEditarBusqueda input[name="cantidad_posiciones"][value="${vacantes}"]`);
+        if (vacRadio) vacRadio.checked = true;
+
+        // Check radio for status (estado)
+        const estRadio = document.querySelector(`#modalEditarBusqueda input[name="estado"][value="${estado}"]`);
+        if (estRadio) estRadio.checked = true;
+
+        // Initialize active skills inside the edit catalog
+        habilidadesEditSeleccionadas.clear();
+        
+        // Populate hidden input
+        const editSkillsInput = document.getElementById('edit_id_habilidades_requeridas');
+        
+        // Reset all edit skill badges active state
+        document.querySelectorAll('.edit-skill-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Parse and toggle skills that are already registered
+        const currentSkills = (reqDeseables + ", " + mision).split(/[,\n]/);
+        document.querySelectorAll('.edit-skill-btn').forEach(btn => {
+            const skill = btn.getAttribute('data-skill');
+            // Check if skill is contained in reqDeseables or similar
+            const matches = currentSkills.some(s => s.trim().toLowerCase() === skill.toLowerCase());
+            if (matches) {
+                habilidadesEditSeleccionadas.add(skill);
+                btn.classList.add('active');
+            }
+        });
+        if (editSkillsInput) {
+            editSkillsInput.value = Array.from(habilidadesEditSeleccionadas).join(", ");
+        }
+
+        // Configure read-only view or edit mode
+        const titleEl = document.getElementById('modalEditarBusquedaTitle');
+        const toggleBtn = document.getElementById('btnToggleEditBusqueda');
+        const footer = document.getElementById('modalEditarBusquedaFooter');
+
+        if (readOnlyMode) {
+            titleEl.innerHTML = '<i data-lucide="info" style="width: 22px; color: var(--primary);"></i> Detalle de la Búsqueda de Personal';
+            setFormReadOnly('formEditarBusqueda', true);
+            toggleBtn.style.display = 'inline-flex';
+            footer.style.display = 'none';
+        } else {
+            titleEl.innerHTML = '<i data-lucide="edit-3" style="width: 22px; color: var(--primary);"></i> Editar Ficha del Perfil de Búsqueda';
+            setFormReadOnly('formEditarBusqueda', false);
+            toggleBtn.style.display = 'none';
+            footer.style.display = 'flex';
+        }
+        
+        // Initialize lucide icons inside title if updated
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+
+        toggleModal('modalEditarBusqueda');
+    }
+
+    // ==========================================
+    // LÓGICA DE DRAG & DROP DEL KANBAN BOARD
+    // ==========================================
+    function allowDrop(ev) {
+        ev.preventDefault();
+    }
+
+    function drag(ev) {
+        ev.dataTransfer.setData("text/plain", ev.target.id);
+    }
+
+    // Cambiar estado desde los botones de la tarjeta (sin drag & drop)
+    function cambiarEstadoBusqueda(busquedaId, targetStatusId, selectElement) {
+        const card = document.getElementById(`kanban-card-${busquedaId}`);
+        const targetColumn = document.querySelector(`.kanban-column[data-status="${targetStatusId}"]`);
+        if (!targetColumn || !card) return;
+        const container = targetColumn.querySelector('.kanban-cards-container');
+        if (!container) return;
+
+        const formData = new FormData();
+        formData.append('estado', targetStatusId);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch(`/busquedas/cambiar-estado/${busquedaId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Move card in DOM
+                container.appendChild(card);
+
+                // Update select dropdown value inside card
+                const selectEl = card.querySelector('select');
+                if (selectEl) {
+                    selectEl.value = data.estado_id;
+                }
+
+                // Update table row badge if present
+                const row = document.querySelector(`tr[ondblclick*="abrirEditarBusqueda('${busquedaId}'"]`);
+                if (row) {
+                    const badgeCell = row.cells[8];
+                    if (badgeCell) {
+                        badgeCell.innerHTML = `<span class="badge" style="background: ${data.color}18; color: ${data.color}; border: 1px solid ${data.color}33;">${data.estado}</span>`;
+                    }
+                    const rowOrigOnDblClick = row.getAttribute('ondblclick');
+                    if (rowOrigOnDblClick) {
+                        const regex = new RegExp(`(abrirEditarBusqueda\\('${busquedaId}',[^)]*['"])\\d+([\\x27\\x22])`);
+                        const rowUpdated = rowOrigOnDblClick.replace(regex, `$1${data.estado_id}$2`);
+                        row.setAttribute('ondblclick', rowUpdated);
+                    }
+                }
+
+                // Update card ondblclick status ID
+                const cardOrigOnDblClick = card.getAttribute('ondblclick');
+                if (cardOrigOnDblClick) {
+                    const regex = new RegExp(`(abrirEditarBusqueda\\('${busquedaId}',[^)]*['"])\\d+([\\x27\\x22])`);
+                    const cardUpdated = cardOrigOnDblClick.replace(regex, `$1${data.estado_id}$2`);
+                    card.setAttribute('ondblclick', cardUpdated);
+                }
+
+                updateKanbanCounts();
+                showToast(`Búsqueda #${busquedaId} → ${data.estado}`);
+            } else {
+                alert('Error al cambiar el estado: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(err => { console.error(err); alert('Error de red al intentar cambiar el estado.'); });
+    }
+
+    function drop(ev, targetStatusId) {
+        ev.preventDefault();
+        const data = ev.dataTransfer.getData("text/plain");
+        const card = document.getElementById(data);
+        const column = ev.target.closest('.kanban-column');
+        
+        // Reset styles for all columns
+        document.querySelectorAll('.kanban-column').forEach(col => {
+            col.style.background = 'var(--bg-card)';
+            col.style.borderStyle = 'solid';
+            col.style.borderColor = 'var(--border-light)';
+        });
+        
+        if (!card) return;
+        const container = column ? column.querySelector('.kanban-cards-container') : null;
+        if (!container) return;
+        
+        const busquedaId = data.replace('kanban-card-', '');
+        cambiarEstadoBusqueda(busquedaId, targetStatusId, null);
+    }
+
+    function updateKanbanCounts() {
+        document.querySelectorAll('.kanban-column').forEach(col => {
+            const status = col.getAttribute('data-status');
+            const count = col.querySelectorAll('.kanban-card').length;
+            const badge = document.getElementById(`count-${status}`);
+            if (badge) badge.textContent = count;
+        });
+    }
+
+    function showToast(message) {
+        let toast = document.getElementById('toast-notification');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'toast-notification';
+            toast.style.position = 'fixed';
+            toast.style.bottom = '2rem';
+            toast.style.right = '2rem';
+            toast.style.background = '#0a84ff';
+            toast.style.color = '#fff';
+            toast.style.padding = '0.75rem 1.5rem';
+            toast.style.borderRadius = '8px';
+            toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            toast.style.zIndex = '9999';
+            toast.style.transition = 'opacity 0.3s ease';
+            toast.style.fontWeight = '500';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.style.opacity = '1';
+        toast.style.display = 'block';
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => { toast.style.display = 'none'; }, 300);
+        }, 3000);
+    }
+
+    function updateEdadRango(prefix) {
+        const minVal = document.getElementById(prefix + '_edad_min').value;
+        const maxVal = document.getElementById(prefix + '_edad_max').value;
+        const hidden = document.getElementById(prefix + '_edad_rango_val');
+        if (minVal && maxVal) {
+            hidden.value = `${minVal} a ${maxVal} años`;
+        } else if (minVal) {
+            hidden.value = `Desde ${minVal} años`;
+        } else if (maxVal) {
+            hidden.value = `Hasta ${maxVal} años`;
+        } else {
+            hidden.value = '';
+        }
+    }
+
+    function handleZonaChange(prefix) {
+        const select = document.getElementById(prefix + '_zona_select');
+        const textInput = document.getElementById(prefix + '_zona_text');
+        if (select.value === 'otro') {
+            textInput.style.display = 'block';
+            textInput.value = '';
+            textInput.required = true;
+            textInput.name = 'zona_residencia';
+            select.removeAttribute('name');
+        } else {
+            textInput.style.display = 'none';
+            textInput.value = select.value;
+            textInput.required = false;
+            select.name = 'zona_residencia';
+            textInput.name = 'zona_residencia_custom';
+        }
+    }
+
+    function togglePerk(prefix, perkName) {
+        const textarea = document.querySelector(`[name="beneficios"]${prefix === 'edit' ? '#edit_beneficios' : ':not(#edit_beneficios)'}`);
+        let lines = textarea.value.split('\n').map(l => l.trim().replace(/^-\s*/, '')).filter(l => l !== '');
+        const index = lines.indexOf(perkName);
+        if (index > -1) {
+            lines.splice(index, 1);
+        } else {
+            lines.push(perkName);
+        }
+        textarea.value = lines.map(l => `- ${l}`).join('\n');
+    }
+
+    function addCustomPerk(prefix) {
+        const input = document.getElementById(`custom_perk_${prefix}`);
+        const perkName = input.value.trim();
+        if (!perkName) return;
+        const textarea = document.querySelector(`[name="beneficios"]${prefix === 'edit' ? '#edit_beneficios' : ':not(#edit_beneficios)'}`);
+        let lines = textarea.value.split('\n').map(l => l.trim().replace(/^-\s*/, '')).filter(l => l !== '');
+        if (lines.indexOf(perkName) === -1) {
+            lines.push(perkName);
+        }
+        textarea.value = lines.map(l => `- ${l}`).join('\n');
+        input.value = '';
+    }
+
+    // Funciones para gestionar estados de búsqueda en el modal
+    function cargarEstadoBusquedaEnFormulario(id, nombre, color, orden, noBorrable, codigo) {
+        document.getElementById('form-estado-busqueda-id').value = id;
+        document.getElementById('form-estado-busqueda-nombre').value = nombre;
+        document.getElementById('form-estado-busqueda-codigo').value = codigo || '';
+        document.getElementById('form-estado-busqueda-color').value = color;
+        document.getElementById('form-estado-busqueda-orden').value = orden;
+
+        if (noBorrable) {
+            document.getElementById('form-estado-busqueda-nombre').setAttribute('readonly', 'true');
+            document.getElementById('titulo-form-estado-busqueda').textContent = "Editar Color, Código y Orden (Estado Predeterminado)";
+        } else {
+            document.getElementById('form-estado-busqueda-nombre').removeAttribute('readonly');
+            document.getElementById('titulo-form-estado-busqueda').textContent = "Editar Estado";
+        }
+
+        document.getElementById('btn-cancelar-edicion-estado-busqueda').style.display = 'inline-block';
+        document.getElementById('btn-submit-estado-busqueda').textContent = "Guardar Cambios";
+    }
+
+    function limpiarFormularioEstadoBusqueda() {
+        document.getElementById('form-estado-busqueda-id').value = "";
+        document.getElementById('form-estado-busqueda-nombre').value = "";
+        document.getElementById('form-estado-busqueda-nombre').removeAttribute('readonly');
+        document.getElementById('form-estado-busqueda-codigo').value = "";
+        document.getElementById('form-estado-busqueda-color').value = "#34c759";
+        document.getElementById('form-estado-busqueda-orden').value = "0";
+
+        document.getElementById('titulo-form-estado-busqueda').textContent = "Crear Nuevo Estado";
+        document.getElementById('btn-cancelar-edicion-estado-busqueda').style.display = 'none';
+        document.getElementById('btn-submit-estado-busqueda').textContent = "Crear Estado";
+    }
+
+    function changeViewMode(mode) {
+        const kanban = document.getElementById('section-kanban-board');
+        const list = document.getElementById('section-list-table');
+        
+        const btnBoth = document.getElementById('btn-view-both');
+        const btnKanban = document.getElementById('btn-view-kanban');
+        const btnList = document.getElementById('btn-view-list');
+        
+        if (!kanban || !list || !btnBoth || !btnKanban || !btnList) return;
+        
+        if (mode === 'both') {
+            kanban.style.display = 'block';
+            list.style.display = 'block';
+            
+            btnBoth.style.background = 'var(--primary)';
+            btnBoth.style.color = 'white';
+            btnKanban.style.background = 'transparent';
+            btnKanban.style.color = 'var(--text-main)';
+            btnList.style.background = 'transparent';
+            btnList.style.color = 'var(--text-main)';
+        } else if (mode === 'kanban') {
+            kanban.style.display = 'block';
+            list.style.display = 'none';
+            
+            btnBoth.style.background = 'transparent';
+            btnBoth.style.color = 'var(--text-main)';
+            btnKanban.style.background = 'var(--primary)';
+            btnKanban.style.color = 'white';
+            btnList.style.background = 'transparent';
+            btnList.style.color = 'var(--text-main)';
+        } else if (mode === 'list') {
+            kanban.style.display = 'none';
+            list.style.display = 'block';
+            
+            btnBoth.style.background = 'transparent';
+            btnBoth.style.color = 'var(--text-main)';
+            btnKanban.style.background = 'transparent';
+            btnKanban.style.color = 'var(--text-main)';
+            btnList.style.background = 'var(--primary)';
+            btnList.style.color = 'white';
+        }
+        localStorage.setItem('busquedas_view_mode', mode);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        updateKanbanCounts();
+        
+        const savedMode = localStorage.getItem('busquedas_view_mode') || 'both';
+        changeViewMode(savedMode);
+        
+        // Add dragover/dragenter listeners to columns for interactive styling
+        document.querySelectorAll('.kanban-column').forEach(col => {
+            col.addEventListener('dragenter', function(e) {
+                this.style.background = 'var(--bg-main)';
+                this.style.borderStyle = 'dashed';
+                this.style.borderColor = 'var(--primary)';
+            });
+            col.addEventListener('dragleave', function(e) {
+                this.style.background = 'var(--bg-card)';
+                this.style.borderStyle = 'solid';
+                this.style.borderColor = 'var(--border-light)';
+            });
+        });
+    });
+</script>
+
+<!-- Modal Gestionar Estados de Búsqueda -->
+<div class="modal-overlay" id="modalGestionarEstadosBusqueda">
+    <div class="modal-content" style="max-width: 600px; width: 95%;">
+        <div class="modal-header">
+            <div class="modal-title">Gestionar Estados de Búsquedas</div>
+            <button class="modal-close" onclick="toggleModal('modalGestionarEstadosBusqueda')">
+                <i data-lucide="x" style="width: 20px;"></i>
+            </button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding: 1.5rem 2.5rem;">
+            
+            <!-- Listado de Estados Existentes -->
+            <h3 style="font-size: 1rem; margin: 0 0 1rem; color: var(--primary); font-weight: 600;">Estados Existentes</h3>
+            <div class="table-container" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--bg-main); border-bottom: 1px solid var(--border);">
+                            <th style="padding: 0.5rem; text-align: left; font-size: 0.8rem;">Estado</th>
+                            <th style="padding: 0.5rem; text-align: left; font-size: 0.8rem;">Código</th>
+                            <th style="padding: 0.5rem; text-align: left; font-size: 0.8rem;">Orden</th>
+                            <th style="padding: 0.5rem; text-align: center; font-size: 0.8rem;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for est in estados %}
+                        <tr style="border-bottom: 1px solid var(--border-light); font-size: 0.85rem;">
+                            <td style="padding: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: {{ est.color }}; border: 1px solid rgba(0,0,0,0.1);"></span>
+                                <strong>{{ est.nombre }}</strong>
+                                {% if est.no_borrable %}
+                                    <span style="font-size: 0.7rem; color: var(--text-dim); background: var(--bg-main); padding: 0.1rem 0.3rem; border-radius: 4px; border: 1px solid var(--border);">Fijo</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 0.5rem;"><code style="font-family: monospace;">{{ est.codigo|default:'' }}</code></td>
+                            <td style="padding: 0.5rem;">{{ est.orden }}</td>
+                            <td style="padding: 0.5rem; text-align: center;">
+                                <div style="display: flex; gap: 0.35rem; justify-content: center;">
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" 
+                                            onclick="cargarEstadoBusquedaEnFormulario('{{ est.id }}', '{{ est.nombre|escapejs }}', '{{ est.color|escapejs }}', '{{ est.orden }}', {{ est.no_borrable|yesno:'true,false' }}, '{{ est.codigo|escapejs }}')">
+                                        <i data-lucide="edit" style="width: 12px; height: 12px;"></i> Editar
+                                    </button>
+                                    {% if not est.no_borrable %}
+                                    <form method="POST" action="{% url 'eliminar_estado_busqueda' est.id %}" style="display: inline;" onsubmit="return confirm('¿Seguro que deseas eliminar el estado «{{ est.nombre|escapejs }}»? Solo se eliminará si no tiene búsquedas asociadas.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--danger); border: 1px solid rgba(255, 59, 48, 0.2); background: rgba(255, 59, 48, 0.05);">
+                                            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Formulario para Agregar / Editar Estado -->
+            <h3 id="titulo-form-estado-busqueda" style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">Crear Nuevo Estado</h3>
+            <form method="POST" action="{% url 'gestionar_estados_busqueda' %}" id="form-gestionar-estado-busqueda">
+                {% csrf_token %}
+                <input type="hidden" name="estado_id" id="form-estado-busqueda-id" value="">
+                <div class="form-row">
+                    <div class="form-group" style="flex: 1.5;">
+                        <label class="form-label">Nombre del Estado *</label>
+                        <input type="text" name="nombre" id="form-estado-busqueda-nombre" class="form-control" required placeholder="Ej: Entrevistas con Cliente">
+                    </div>
+                    <div class="form-group" style="flex: 1.5;">
+                        <label class="form-label">Código del Estado</label>
+                        <input type="text" name="codigo" id="form-estado-busqueda-codigo" class="form-control" placeholder="Ej: entrevistas_cliente" style="font-family: monospace;">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">Color *</label>
+                        <input type="color" name="color" id="form-estado-busqueda-color" class="form-control" style="height: 38px; padding: 2px; cursor: pointer;" value="#34c759">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Orden de Visualización</label>
+                        <input type="number" name="orden" id="form-estado-busqueda-orden" class="form-control" value="0" min="0">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="limpiarFormularioEstadoBusqueda()" style="display: none;" id="btn-cancelar-edicion-estado-busqueda">Cancelar Edición</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-estado-busqueda">Crear Estado</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

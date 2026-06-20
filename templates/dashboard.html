@@ -1,0 +1,183 @@
+<!-- templates/dashboard.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="animate-fade">
+    <div class="page-header" style="margin-bottom: 2.5rem;">
+        <h1 class="page-title">Hola, {{ user.username|default:"Admin" }} 👋</h1>
+        <p class="page-subtitle">Este es el resumen de tu actividad de hoy.</p>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="card stat-card" onclick="window.location.href='/busquedas/?estado=abierto'" style="cursor: pointer;" title="Hacer clic para ver búsquedas abiertas">
+            <div class="stat-header">
+                <div class="stat-label">Búsquedas Activas</div>
+                <div class="stat-icon blue">
+                    <i data-lucide="briefcase" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ activas_count }}</div>
+            <div class="stat-trend">
+                Vacantes en proceso de selección
+            </div>
+        </div>
+        
+        <div class="card stat-card" onclick="window.location.href='/postulantes/?estado=en_proceso'" style="cursor: pointer;" title="Hacer clic para ver postulantes en proceso">
+            <div class="stat-header">
+                <div class="stat-label">Postulantes en Proceso</div>
+                <div class="stat-icon green">
+                    <i data-lucide="users" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ en_proceso_count }}</div>
+            <div class="stat-trend">
+                Candidatos activos en etapas evaluativas
+            </div>
+        </div>
+        
+        <div class="card stat-card" onclick="window.location.href='/postulantes/?q=entrevista'" style="cursor: pointer;" title="Hacer clic para ver entrevistas hoy">
+            <div class="stat-header">
+                <div class="stat-label">Entrevistas Hoy</div>
+                <div class="stat-icon purple">
+                    <i data-lucide="calendar" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ entrevistas_hoy_count }}</div>
+            <div class="stat-trend">
+                Agendadas para el día de hoy
+            </div>
+        </div>
+        
+        <div class="card stat-card" onclick="window.location.href='/comisiones/?estado=pendiente'" style="cursor: pointer;" title="Hacer clic para ver comisiones pendientes">
+            <div class="stat-header">
+                <div class="stat-label">Comisiones Pendientes</div>
+                <div class="stat-icon orange">
+                    <i data-lucide="dollar-sign" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ comisiones_pendientes_monto }}</div>
+            <div class="stat-trend">
+                Monto pendiente de cobro
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Sections -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+        
+        <!-- Left: Recent Searches -->
+        <div class="card">
+            <div class="section-header">
+                <h2 class="section-title">Búsquedas de Personal Recientes</h2>
+                <a href="{% url 'busquedas' %}" class="btn btn-primary" style="text-decoration: none;">
+                    <i data-lucide="plus" style="width: 18px;"></i>
+                    Nueva Búsqueda
+                </a>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Puesto</th>
+                            <th>Empresa</th>
+                            <th>Nivel / Área</th>
+                            <th>Enlaces</th>
+                            <th>Prioridad</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for busqueda in busquedas_recientes %}
+                        <tr>
+                            <td style="font-weight: 500; color: var(--text-main);">{{ busqueda.titulo_puesto }}</td>
+                            <td>{{ busqueda.empresa.nombre }}</td>
+                            <td>
+                                <div>{{ busqueda.get_nivel_display }}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-dim);">{{ busqueda.get_areas_display }}</div>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                    {% if busqueda.jd_url %}
+                                        <a href="{{ busqueda.jd_url }}" target="_blank" class="btn btn-secondary" style="padding: 0.25rem 0.4rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.2rem; border-radius: 6px; border: 1px solid var(--border); text-decoration: none;" title="Ver Job Description (JD)">
+                                            <i data-lucide="file-text" style="width: 12px; height: 12px; color: var(--primary);"></i>
+                                            JD
+                                        </a>
+                                    {% endif %}
+                                    {% if busqueda.flyer_url %}
+                                        <a href="{{ busqueda.flyer_url }}" target="_blank" class="btn btn-secondary" style="padding: 0.25rem 0.4rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.2rem; border-radius: 6px; border: 1px solid var(--border); text-decoration: none;" title="Ver Flyer">
+                                            <i data-lucide="image" style="width: 12px; height: 12px; color: var(--secondary);"></i>
+                                            Flyer
+                                        </a>
+                                    {% endif %}
+                                    {% if not busqueda.jd_url and not busqueda.flyer_url %}
+                                        <span style="color: var(--text-light); font-size: 0.75rem; font-style: italic;">Sin links</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if busqueda.prioridad == 'urgente' %}
+                                    <span class="badge badge-red">Urgente</span>
+                                {% elif busqueda.prioridad == 'alta' %}
+                                    <span class="badge badge-orange" style="background: rgba(255, 159, 10, 0.1); color: var(--warning);">Alta</span>
+                                {% else %}
+                                    <span class="badge badge-blue">Normal</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if busqueda.estado == 'abierto' %}
+                                    <span class="badge badge-green">Abierto</span>
+                                {% elif busqueda.estado == 'pausa' %}
+                                    <span class="badge badge-orange">Pausa</span>
+                                {% elif busqueda.estado == 'cubierto' %}
+                                    <span class="badge badge-blue">Cubierto</span>
+                                {% else %}
+                                    <span class="badge badge-red">Cancelado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 4rem; color: var(--text-dim);">
+                                <i data-lucide="briefcase" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                                <div style="font-weight: 500;">No hay búsquedas de personal registradas</div>
+                                Comienza creando una búsqueda de personal para verla listada aquí.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right: Recent Activity -->
+        <div class="card">
+            <div class="section-header">
+                <h2 class="section-title">Actividad Reciente</h2>
+            </div>
+            <div class="activity-list">
+                {% for actividad in actividades_recientes %}
+                <div class="activity-item">
+                    <div class="activity-dot {% if actividad.estado_nuevo == 'contratado' %}dot-green{% elif actividad.estado_nuevo == 'rechazada_empresa' or actividad.estado_nuevo == 'rechazada_postulante' %}dot-red{% else %}dot-blue{% endif %}"></div>
+                    <div>
+                        <div class="activity-content">
+                            <b>{{ actividad.postulacion.postulante.nombre }} {{ actividad.postulacion.postulante.apellido }}</b> pasó a 
+                            <span style="font-weight: 600;">{{ actividad.get_estado_nuevo_display }}</span> 
+                            en la búsqueda de <i>{{ actividad.postulacion.perfil_busqueda.titulo_puesto }}</i>.
+                        </div>
+                        <div class="activity-time">{{ actividad.fecha_cambio|timesince }} atrás</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align: center; padding: 4rem 1.5rem; color: var(--text-dim);">
+                    <i data-lucide="bell-off" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                    <div style="font-weight: 500;">Sin actividad reciente</div>
+                    El historial se actualizará cuando se postulen candidatos y cambien sus estados.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

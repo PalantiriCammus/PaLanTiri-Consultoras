@@ -1,0 +1,216 @@
+<!-- templates/comisiones.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="animate-fade">
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+            <h1 class="page-title">Sistema de Comisiones</h1>
+            <p class="page-subtitle">Monitorea los cobros a empresas, liquidaciones de selectores y estado de garantías.</p>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Total Facturado</div>
+                <div class="stat-icon blue">
+                    <i data-lucide="wallet" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">${{ total_facturado|floatformat:"2" }}</div>
+            <div class="stat-trend">Ingresos totales brutos</div>
+        </div>
+        
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Pendiente de Cobro (Empresas)</div>
+                <div class="stat-icon orange">
+                    <i data-lucide="hourglass" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">${{ total_pendiente_cobro|floatformat:"2" }}</div>
+            <div class="stat-trend">Por facturar/cobrar a clientes</div>
+        </div>
+
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Pendiente de Pago (Selectores)</div>
+                <div class="stat-icon pink" style="background: rgba(236, 72, 153, 0.1); color: rgb(236, 72, 153);">
+                    <i data-lucide="arrow-down-left" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">${{ total_pendiente_pago|floatformat:"2" }}</div>
+            <div class="stat-trend">A liquidar a colaboradores</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="card">
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="section-title">Historial de Comisiones</h2>
+            <form method="GET" action="" style="display: flex; gap: 0.5rem; align-items: center;">
+                <label class="form-label" style="margin: 0; white-space: nowrap;">Estado:</label>                <select name="estado" class="form-control" onchange="this.form.submit()" style="width: 200px; padding: 0.3rem 0.5rem;">
+                    <option value="">-- Todos los estados --</option>
+                    {% for est in estados %}
+                        <option value="{{ est.id }}" {% if estado_filtro == est.id|stringformat:"i" or estado_filtro == est.codigo %}selected{% endif %}>{{ est.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Detalle de Contratación</th>
+                        <th>Empresa / Cliente</th>
+                        <th>Selector Freelance</th>
+                        <th>Desglose de Montos</th>
+                        <th>Estado</th>
+                        <th>Fechas Importantes</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comision in comisiones %}
+                    <tr>
+                        <td style="font-weight: 500; color: var(--text-main);">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--bg-main); display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--primary); flex-shrink: 0;">
+                                    $
+                                </div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span>{{ comision.postulacion.postulante.nombre_completo }}</span>
+                                    <span style="font-size: 0.75rem; color: var(--text-dim);">Puesto: {{ comision.postulacion.perfil_busqueda.titulo_puesto }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>{{ comision.empresa.nombre }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-dim);">Contrato: {{ comision.comision_porcentaje_empresa }}% del salario</div>
+                        </td>
+                        <td>
+                            <div>{{ comision.selector.nombre_completo }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-dim);">Comisión: {{ comision.comision_porcentaje_selector }}% de la ganancia</div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 600; color: var(--text-main);">Total: ${{ comision.monto_total|floatformat:"2" }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-dim);">
+                                Consultora: ${{ comision.monto_empresa|floatformat:"2" }} | Selector: ${{ comision.monto_selector|floatformat:"2" }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: {{ comision.estado.color }}18; color: {{ comision.estado.color }}; border: 1px solid {{ comision.estado.color }}40; font-weight: 600; font-size: 0.85rem; padding: 0.25rem 0.6rem;">
+                                {{ comision.estado.nombre }}
+                            </span>
+                        </td>
+                        <td>
+                            <div>Inicio: {{ comision.fecha_inicio_trabajo|date:"d/m/Y" }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-dim);">Garantía: {{ comision.fecha_vencimiento_garantia|date:"d/m/Y" }}</div>
+                        </td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.25rem;" onclick="abrirEditarModal('{{ comision.id }}', '{{ comision.estado.id }}', '{{ comision.numero_comprobante|escapejs }}', '{{ comision.metodo_pago|escapejs }}', '{{ comision.fecha_pago|default:''|escapejs }}', '{{ comision.notas|escapejs }}')">
+                                <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
+                                Gestionar
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 4rem; color: var(--text-dim);">
+                            <i data-lucide="wallet" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.5; color: var(--text-light);"></i>
+                            <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main); font-size: 1.1rem;">No hay comisiones liquidadas</div>
+                            Las comisiones se generan automáticamente cuando un postulante es contratado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Gestionar Comisión -->
+<div class="modal-overlay" id="modalEditarComision">
+    <div class="modal-content" style="max-width: 550px;">
+        <div class="modal-header">
+            <div class="modal-title">Gestionar Cobros y Pagos</div>
+            <button class="modal-close" onclick="toggleModal('modalEditarComision')">
+                <i data-lucide="x" style="width: 20px;"></i>
+            </button>
+        </div>
+        <form method="POST" id="formEditarComision" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                
+                <div class="form-group">
+                    <label class="form-label">Estado de la Comisión *</label>
+                    <select name="estado" id="edit_estado" class="form-control" required>
+                        {% for est in estados %}
+                            <option value="{{ est.id }}">{{ est.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <h3 style="font-size: 0.95rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">Información del Pago (Opcional)</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Fecha de Pago</label>
+                        <input type="date" name="fecha_pago" id="edit_fecha_pago" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Método de Pago</label>
+                        <input type="text" name="metodo_pago" id="edit_metodo_pago" class="form-control" placeholder="Ej: Transferencia Banco Galicia">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Número de Comprobante / Transacción</label>
+                    <input type="text" name="numero_comprobante" id="edit_numero_comprobante" class="form-control" placeholder="Ej: TXN-9823190">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notas Internas</label>
+                    <textarea name="notas" id="edit_notas" class="form-control" style="height: 80px;" placeholder="Cualquier aclaración sobre facturación o liquidación..."></textarea>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="toggleModal('modalEditarComision')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Actualizar Comisión</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal.classList.contains('active')) {
+            modal.classList.remove('active');
+        } else {
+            modal.classList.add('active');
+        }
+    }
+
+    function abrirEditarModal(id, estado, numeroComprobante, metodoPago, fechaPago, notas) {
+        // Set action URL dynamically
+        const form = document.getElementById('formEditarComision');
+        form.action = `/comisiones/editar/${id}/`;
+        
+        // Populate fields
+        document.getElementById('edit_estado').value = estado;
+        document.getElementById('edit_numero_comprobante').value = numeroComprobante;
+        document.getElementById('edit_metodo_pago').value = metodoPago;
+        document.getElementById('edit_fecha_pago').value = fechaPago;
+        document.getElementById('edit_notas').value = notas;
+        
+        // Open modal
+        toggleModal('modalEditarComision');
+    }
+</script>
+{% endblock %}

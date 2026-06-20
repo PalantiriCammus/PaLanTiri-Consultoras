@@ -1,0 +1,1458 @@
+<!-- templates/postulantes.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="animate-fade">
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+            <h1 class="page-title">Base de Postulantes</h1>
+            <p class="page-subtitle">Gestiona tu talento, consulta perfiles y descarga sus currículums.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            {% if global_form_id and global_form_id != 'global-form-id-placeholder' %}
+            <a href="https://docs.google.com/forms/d/{{ global_form_id }}/edit" target="_blank" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid rgba(52, 199, 89, 0.3); background: rgba(52, 199, 89, 0.08); text-decoration: none; color: #34C759;" title="Abrir editor de Google Forms para el formulario global en una pestaña nueva">
+                <i data-lucide="edit" style="width: 18px;"></i>
+                Editar Formulario Global
+            </a>
+            {% endif %}
+            <a href="{% url 'sincronizar_respuestas_form_global' %}" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid rgba(66, 133, 244, 0.3); background: rgba(66, 133, 244, 0.08); text-decoration: none; color: #4285F4;">
+                <i data-lucide="refresh-cw" style="width: 18px;"></i>
+                Sincronizar Formulario Global
+            </a>
+            <button class="btn btn-secondary" onclick="toggleModal('modalGestionarEstados')" style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main);">
+                <i data-lucide="settings-2" style="width: 18px;"></i>
+                Gestionar Estados
+            </button>
+            <button class="btn btn-primary" onclick="toggleModal('modalNuevoPostulante')">
+                <i data-lucide="plus" style="width: 18px;"></i>
+                Nuevo Postulante
+            </button>
+        </div>
+    </div>
+
+    <!-- Banner de búsqueda activa (solo aparece cuando se filtra por búsqueda) -->
+    {% if busqueda_actual %}
+    <div style="margin: 1.25rem 0; padding: 1rem 1.25rem; background: linear-gradient(135deg, rgba(10, 132, 255, 0.08), rgba(10, 132, 255, 0.03)); border: 1px solid rgba(10, 132, 255, 0.25); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 36px; height: 36px; border-radius: 9px; background: rgba(10, 132, 255, 0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i data-lucide="briefcase" style="width: 18px; color: var(--primary);"></i>
+            </div>
+            <div>
+                <div style="font-size: 0.72rem; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.15rem;">Filtrando por Búsqueda</div>
+                <div style="font-weight: 700; color: var(--text-main); font-size: 1rem;">{{ busqueda_actual.titulo_puesto }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-dim);">{{ busqueda_actual.empresa.nombre }}{% if busqueda_actual.codigo_busqueda %} · <span style="color: var(--primary); font-weight: 600;">{{ busqueda_actual.codigo_busqueda }}</span>{% endif %} · <strong style="color: var(--text-main);">{{ total_postulantes }}</strong> postulante{{ total_postulantes|pluralize }} activo{{ total_postulantes|pluralize }}</div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.6rem; align-items: center; flex-shrink: 0;">
+            <a href="/postulantes/?vista=busqueda&busqueda_id={{ busqueda_actual.id }}&mostrar_rechazados=1"
+               style="padding: 0.4rem 0.9rem; font-size: 0.78rem; border-radius: 8px; border: 1px solid rgba(255, 59, 48, 0.3); background: rgba(255, 59, 48, 0.06); color: var(--danger); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <i data-lucide="eye" style="width: 14px;"></i>
+                Ver también rechazados
+            </a>
+            <a href="/busquedas/" style="padding: 0.4rem 0.9rem; font-size: 0.78rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <i data-lucide="arrow-left" style="width: 14px;"></i>
+                Volver a Búsquedas
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stats Grid -->
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Total Postulantes</div>
+                <div class="stat-icon blue">
+                    <i data-lucide="users" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ total_postulantes }}</div>
+            <div class="stat-trend">Cargados en el sistema</div>
+        </div>
+        
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Disponibles / Activos</div>
+                <div class="stat-icon green">
+                    <i data-lucide="check-circle" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ postulantes_activos }}</div>
+            <div class="stat-trend"><span class="trend-up">Disponibles</span> para búsquedas</div>
+        </div>
+
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">En Proceso</div>
+                <div class="stat-icon orange">
+                    <i data-lucide="loader" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ postulantes_en_proceso }}</div>
+            <div class="stat-trend">Participando de procesos</div>
+        </div>
+    </div>
+
+
+    <!-- ====================================================== -->
+    <!-- TABS DE FILTRO: Vista por categoría de postulantes      -->
+    <!-- ====================================================== -->
+    <div style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; width: 100%;">
+            <div style="flex: 1; min-width: 280px;">
+                <div style="margin-bottom: 0.75rem; font-size: 0.78rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em;">
+                    Mostrar postulantes:
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-start;">
+
+                    <!-- Tab: Búsquedas Activas (default) -->
+                    <a href="?vista=activas" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-decoration: none; transition: all 0.2s ease;
+                        {% if vista == 'activas' or not vista %}background: var(--primary); color: #fff; border: 1px solid var(--primary);{% else %}background: var(--bg-main); color: var(--text-dim); border: 1px solid var(--border);{% endif %}">
+                        <i data-lucide="briefcase" style="width: 14px; height: 14px;"></i>
+                        En Búsquedas Activas
+                        <span style="{% if vista == 'activas' or not vista %}background: rgba(255,255,255,0.2); color: #fff;{% else %}background: var(--bg-card); color: var(--text-dim);{% endif %} border-radius: 10px; padding: 0.1rem 0.5rem; font-size: 0.72rem;">{{ total_postulantes }}</span>
+                    </a>
+
+                    <!-- Tab: Todos los Activos -->
+                    <a href="?vista=todos" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-decoration: none; transition: all 0.2s ease;
+                        {% if vista == 'todos' %}background: #34c759; color: #fff; border: 1px solid #34c759;{% else %}background: var(--bg-main); color: var(--text-dim); border: 1px solid var(--border);{% endif %}">
+                        <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>
+                        Todos los Activos
+                        <span style="{% if vista == 'todos' %}background: rgba(255,255,255,0.2); color: #fff;{% else %}background: var(--bg-card); color: var(--text-dim);{% endif %} border-radius: 10px; padding: 0.1rem 0.5rem; font-size: 0.72rem;">{{ postulantes_activos }}</span>
+                    </a>
+
+                    <!-- Tab: Nuevos (últimos 30 días) -->
+                    <a href="?vista=nuevos" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-decoration: none; transition: all 0.2s ease;
+                        {% if vista == 'nuevos' %}background: #ff9f0a; color: #fff; border: 1px solid #ff9f0a;{% else %}background: var(--bg-main); color: var(--text-dim); border: 1px solid var(--border);{% endif %}">
+                        <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+                        Nuevos (30 días)
+                        <span style="{% if vista == 'nuevos' %}background: rgba(255,255,255,0.2); color: #fff;{% else %}background: var(--bg-card); color: var(--text-dim);{% endif %} border-radius: 10px; padding: 0.1rem 0.5rem; font-size: 0.72rem;">{{ nuevos_count }}</span>
+                    </a>
+
+                    <!-- Separator -->
+                    <div style="width: 1px; height: 28px; background: var(--border-light); margin: 0 0.25rem; align-self: center;"></div>
+
+                    <!-- Tab: Por Búsqueda (dropdown) -->
+                    <div style="position: relative;" id="tab-busqueda-wrapper">
+                        <button onclick="toggleTabDropdown('busqueda')"
+                            style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: none;
+                            {% if vista == 'busqueda' %}background: #0a84ff; color: #fff;{% else %}background: var(--bg-main); color: var(--text-dim); border: 1px solid var(--border);{% endif %}">
+                            <i data-lucide="search" style="width: 14px; height: 14px;"></i>
+                            Por Búsqueda {% if vista == 'busqueda' and busqueda_id_filtro %}<span style="background:rgba(255,255,255,0.2); border-radius:10px; padding: 0.1rem 0.4rem; font-size:0.7rem;">✓</span>{% endif %}
+                            <i data-lucide="chevron-down" style="width: 12px; height: 12px;"></i>
+                        </button>
+                        <div id="dropdown-busqueda" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow-md); z-index:100; min-width:240px; max-height:260px; overflow-y:auto; padding:0.4rem;">
+                            {% for busqueda in busquedas_activas %}
+                            <a href="?vista=busqueda&busqueda_id={{ busqueda.id }}"
+                               style="display:block; padding:0.5rem 0.75rem; font-size:0.8rem; text-decoration:none; border-radius:6px; transition: background 0.15s; color:var(--text-main);
+                               {% if busqueda_id_filtro == busqueda.id|stringformat:'s' %}background:rgba(10,132,255,0.1); color: var(--primary); font-weight:600;{% endif %}"
+                               onmouseover="this.style.background='var(--bg-main)'" onmouseout="this.style.background='{% if busqueda_id_filtro == busqueda.id|stringformat:"s" %}rgba(10,132,255,0.1){% else %}transparent{% endif %}'">
+                                <div style="font-weight:600; font-size:0.78rem;">{{ busqueda.titulo_puesto }}</div>
+                                <div style="font-size:0.7rem; color:var(--text-dim);">{{ busqueda.empresa.nombre }}</div>
+                            </a>
+                            {% empty %}
+                            <div style="padding:0.75rem; font-size:0.8rem; color:var(--text-dim); text-align:center;">No hay búsquedas activas</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Tab: Por Empresa (dropdown) -->
+                    <div style="position: relative;" id="tab-empresa-wrapper">
+                        <button onclick="toggleTabDropdown('empresa')"
+                            style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: none;
+                            {% if vista == 'empresa' %}background: #9333ea; color: #fff;{% else %}background: var(--bg-main); color: var(--text-dim); border: 1px solid var(--border);{% endif %}">
+                            <i data-lucide="building-2" style="width: 14px; height: 14px;"></i>
+                            Por Empresa {% if vista == 'empresa' and empresa_id_filtro %}<span style="background:rgba(255,255,255,0.2); border-radius:10px; padding: 0.1rem 0.4rem; font-size:0.7rem;">✓</span>{% endif %}
+                            <i data-lucide="chevron-down" style="width: 12px; height: 12px;"></i>
+                        </button>
+                        <div id="dropdown-empresa" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow-md); z-index:100; min-width:220px; max-height:260px; overflow-y:auto; padding:0.4rem;">
+                            {% for empresa in empresas_con_busquedas %}
+                            <a href="?vista=empresa&empresa_id={{ empresa.id }}"
+                               style="display:block; padding:0.5rem 0.75rem; font-size:0.8rem; text-decoration:none; border-radius:6px; transition: background 0.15s; color:var(--text-main);
+                               {% if empresa_id_filtro == empresa.id|stringformat:'s' %}background:rgba(147,51,234,0.1); color:#9333ea; font-weight:600;{% endif %}"
+                               onmouseover="this.style.background='var(--bg-main)'" onmouseout="this.style.background='transparent'">
+                                {{ empresa.nombre }}
+                            </a>
+                            {% empty %}
+                            <div style="padding:0.75rem; font-size:0.8rem; color:var(--text-dim); text-align:center;">Sin empresas activas</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Tab: Por Selector (dropdown) -->
+                    <div style="position: relative;" id="tab-selector-wrapper">
+                        <button onclick="toggleTabDropdown('selector')"
+                            style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: none;
+                            {% if vista == 'selector' %}background: #ff6b35; color: #fff;{% else %}background: var(--bg-main); color: var(--text-dim); border: 1px solid var(--border);{% endif %}">
+                            <i data-lucide="user-check" style="width: 14px; height: 14px;"></i>
+                            Por Selector {% if vista == 'selector' and selector_id_filtro %}<span style="background:rgba(255,255,255,0.2); border-radius:10px; padding: 0.1rem 0.4rem; font-size:0.7rem;">✓</span>{% endif %}
+                            <i data-lucide="chevron-down" style="width: 12px; height: 12px;"></i>
+                        </button>
+                        <div id="dropdown-selector" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow-md); z-index:100; min-width:220px; max-height:260px; overflow-y:auto; padding:0.4rem;">
+                            {% for sel in selectores %}
+                            <a href="?vista=selector&selector_id_tab={{ sel.id }}"
+                               style="display:block; padding:0.5rem 0.75rem; font-size:0.8rem; text-decoration:none; border-radius:6px; transition: background 0.15s; color:var(--text-main);
+                               {% if selector_id_filtro == sel.id|stringformat:'s' %}background:rgba(255,107,53,0.1); color:#ff6b35; font-weight:600;{% endif %}"
+                               onmouseover="this.style.background='var(--bg-main)'" onmouseout="this.style.background='transparent'">
+                                {{ sel.nombre }}
+                            </a>
+                            {% empty %}
+                            <div style="padding:0.75rem; font-size:0.8rem; color:var(--text-dim); text-align:center;">Sin selectores activos</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Switcher -->
+            <div style="margin-bottom: 2px;">
+                <div class="segmented-control" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 3px; display: inline-flex; gap: 4px;">
+                    <button type="button" id="btn-view-both" onclick="changeViewMode('both')" class="btn" style="padding: 0.4rem 1rem; font-size: 0.85rem; border-radius: 6px; border: none; background: var(--primary); color: white; display: flex; align-items: center; gap: 0.35rem; cursor: pointer; transition: all 0.2s;">
+                        <i data-lucide="layout" style="width: 16px; height: 16px;"></i> Ver Ambos
+                    </button>
+                    <button type="button" id="btn-view-kanban" onclick="changeViewMode('kanban')" class="btn" style="padding: 0.4rem 1rem; font-size: 0.85rem; border-radius: 6px; border: none; background: transparent; color: var(--text-main); display: flex; align-items: center; gap: 0.35rem; cursor: pointer; transition: all 0.2s;">
+                        <i data-lucide="kanban" style="width: 16px; height: 16px;"></i> Tablero Kanban
+                    </button>
+                    <button type="button" id="btn-view-list" onclick="changeViewMode('list')" class="btn" style="padding: 0.4rem 1rem; font-size: 0.85rem; border-radius: 6px; border: none; background: transparent; color: var(--text-main); display: flex; align-items: center; gap: 0.35rem; cursor: pointer; transition: all 0.2s;">
+                        <i data-lucide="list" style="width: 16px; height: 16px;"></i> Listado
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Indicador del filtro activo -->
+        {% if vista and vista != 'activas' %}
+        <div style="margin-top: 0.75rem; padding: 0.5rem 0.85rem; background: rgba(10,132,255,0.06); border: 1px solid rgba(10,132,255,0.15); border-radius: 8px; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--primary);">
+            <i data-lucide="info" style="width: 14px; height: 14px;"></i>
+            Mostrando: <strong>
+            {% if vista == 'todos' %}todos los postulantes activos del sistema
+            {% elif vista == 'nuevos' %}postulantes nuevos (últimos 30 días)
+            {% elif vista == 'busqueda' %}postulantes de la búsqueda seleccionada
+            {% elif vista == 'empresa' %}postulantes de la empresa seleccionada
+            {% elif vista == 'selector' %}postulantes presentados por el selector seleccionado
+            {% endif %}
+            </strong>
+            &nbsp;<a href="?vista=activas" style="color: var(--text-dim); font-size: 0.75rem; text-decoration: none; opacity: 0.7;">× Volver al default</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Main Content -->
+    <div class="card">
+        <div class="section-header" style="flex-direction: column; align-items: stretch; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <h2 class="section-title">Listado de Postulantes</h2>
+                <button type="button" class="btn btn-secondary" id="toggleFiltersBtn" onclick="toggleAdvancedFilters()" style="padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.25rem;">
+                    <i data-lucide="sliders-horizontal" style="width: 16px; height: 16px;"></i>
+                    Filtros Avanzados
+                </button>
+            </div>
+            
+            <form method="GET" action="{% url 'postulantes' %}" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                <!-- Fila Principal: Búsqueda rápida y check pool -->
+                <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;">
+                    <div class="search-box" style="flex: 1; min-width: 250px; background: rgba(0, 0, 0, 0.04); margin-bottom: 0;">
+                        <i data-lucide="search"></i>
+                        <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nombre, CV, informe, etc...">
+                    </div>
+                    
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 500; font-size: 0.9rem; color: var(--text-main);">
+                        <input type="checkbox" name="pool_only" {% if pool_only %}checked{% endif %} style="width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border);">
+                        Solo Base de Talentos
+                    </label>
+                    
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.9rem; height: 38px;">
+                            Filtrar
+                        </button>
+                        {% if q or pool_only or fecha_inicio or fecha_fin or titulo_puesto or localidad %}
+                            <a href="{% url 'postulantes' %}" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.9rem; height: 38px; text-decoration: none; display: inline-flex; align-items: center; color: var(--text-dim); border: 1px solid var(--border);">
+                                Limpiar
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Sección Colapsable de Filtros Avanzados -->
+                <div id="advancedFiltersSection" style="display: {% if fecha_inicio or fecha_fin or titulo_puesto or localidad %}grid{% else %}none{% endif %}; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1rem; background: rgba(0,0,0,0.02); border-radius: var(--radius-md); border: 1px dashed var(--border);">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Desde Fecha</label>
+                        <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; height: 38px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Hasta Fecha</label>
+                        <input type="date" name="fecha_fin" value="{{ fecha_fin }}" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; height: 38px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Título Profesional</label>
+                        <input type="text" name="titulo_puesto" value="{{ titulo_puesto }}" placeholder="Ej: Contador" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; height: 38px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Localidad / Provincia</label>
+                        <input type="text" name="localidad" value="{{ localidad }}" placeholder="Ej: Rosario" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; height: 38px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Estado</label>
+                        <select name="estado" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; height: 38px;">
+                            <option value="">Todos</option>
+                            {% for est in estados %}
+                                <option value="{{ est.id }}" {% if estado_filtro == est.id|stringformat:"s" %}selected{% endif %}>{{ est.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div id="section-kanban-board-postulantes" style="border-top: 1px solid var(--border-light); padding-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <h2 class="section-title" style="margin-bottom: 0; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
+                    <i data-lucide="kanban" style="width: 20px; color: var(--primary);"></i>
+                    Tablero de Estado de Postulantes
+                </h2>
+                <div style="font-size: 0.8rem; color: var(--text-dim);">
+                    Arrastra o usa los botones para cambiar el estado
+                </div>
+            </div>
+
+            <div class="kanban-board-postulantes" style="display: flex; overflow-x: auto; gap: 1rem; padding-bottom: 1rem; align-items: start;">
+
+                {% for est in estados %}
+                <!-- Columna: {{ est.nombre }} -->
+                <div class="kanban-col-post" data-estado-post="{{ est.id }}"
+                     ondragover="allowDropPost(event)" 
+                     ondrop="dropPost(event, '{{ est.id }}')"
+                     ondragenter="this.classList.add('drag-over-col')"
+                     ondragleave="this.classList.remove('drag-over-col')"
+                     style="background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-light); padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; min-height: 220px; min-width: 250px; flex-shrink: 0; transition: all 0.2s ease;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.6rem; border-bottom: 2px solid {{ est.color }};">
+                        <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 600; color: var(--text-main); font-size: 0.85rem;">
+                            <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ est.color }};"></span>
+                            {{ est.nombre }}
+                        </div>
+                        <span class="badge" style="background: rgba(0,0,0,0.06); color: var(--text-main);" id="pcount-{{ est.id }}">0</span>
+                    </div>
+                    <div class="kanban-post-container" style="display: flex; flex-direction: column; gap: 0.6rem; min-height: 160px;">
+                        {% for p in postulantes %}{% if p.estado.id == est.id %}
+                        <div class="kanban-post-card" id="pkcard-{{ p.id }}" draggable="true"
+                             ondragstart="dragPost(event)"
+                             style="background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 0.7rem; cursor: grab; transition: transform 0.15s ease, box-shadow 0.15s ease; user-select: none;"
+                             onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)';"
+                             onmouseout="this.style.transform='none';this.style.boxShadow='none';">
+                            <div style="font-weight: 600; font-size: 0.82rem; color: var(--text-main); margin-bottom: 0.2rem;">{{ p.nombre }} {{ p.apellido }}</div>
+                            <div style="font-size: 0.72rem; color: var(--text-dim); margin-bottom: 0.2rem;">{{ p.titulo_principal|truncatechars:30 }}</div>
+                            
+                            <!-- Fecha de Último Movimiento de Estado -->
+                            <div style="font-size: 0.62rem; color: var(--text-dim); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.2rem;" title="Fecha de último movimiento de estado">
+                                <i data-lucide="clock" style="width: 10px; height: 10px;"></i>
+                                <span class="last-move-time" id="lastmove-{{ p.id }}">{{ p.fecha_cambio_estado|date:"d/m/Y H:i" }}</span>
+                            </div>
+
+                            <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                                <select onchange="cambiarEstadoPostulanteSelect({{ p.id }}, this); event.stopPropagation();" style="width: 100%; font-size: 0.68rem; padding: 0.2rem; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); cursor: pointer;">
+                                    {% for est_opt in estados %}
+                                        <option value="{{ est_opt.id }}" {% if est_opt.id == est.id %}selected{% endif %}>Mover a: {{ est_opt.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        {% endif %}{% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+
+            </div><!-- fin kanban-board-postulantes -->
+        </div><!-- fin sección kanban -->
+
+        <div id="section-list-table-postulantes" class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Postulante</th>
+                        <th>Título / Categorías</th>
+                        <th>Contacto</th>
+                        <th>Ubicación</th>
+                        <th>Preferencias / CV</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for postulante in postulantes %}
+                    <tr ondblclick="abrirEditarModal('{{ postulante.id }}', '{{ postulante.nombre|escapejs }}', '{{ postulante.apellido|escapejs }}', '{{ postulante.email|escapejs }}', '{{ postulante.telefono|escapejs }}', '{{ postulante.fecha_nacimiento|default:''|escapejs }}', '{{ postulante.genero|escapejs }}', '{{ postulante.pais|escapejs }}', '{{ postulante.provincia|escapejs }}', '{{ postulante.ciudad|escapejs }}', '{{ postulante.disponibilidad_mudanza|yesno:'true,false' }}', '{{ postulante.titulo_principal|escapejs }}', '{{ postulante.resumen_profesional|escapejs }}', '{{ postulante.experiencia_anos|escapejs }}', '{{ postulante.titulaciones|escapejs }}', '{{ postulante.habilidades|escapejs }}', '{{ postulante.idiomas|escapejs }}', '{{ postulante.salario_pretendido_minimo|default:''|escapejs }}', '{{ postulante.salario_pretendido_maximo|default:''|escapejs }}', '{{ postulante.acepta_remoto|yesno:'true,false' }}', '{{ postulante.acepta_hibrido|yesno:'true,false' }}', '{{ postulante.acepta_presencial|yesno:'true,false' }}', '{{ postulante.linkedin_url|default:''|escapejs }}', '{{ postulante.portfolio_url|default:''|escapejs }}', '{{ postulante.github_url|default:''|escapejs }}', '{{ postulante.estado.id }}', '{{ postulante.selector.id|default:'' }}', '{{ postulante.selector_cuit|default:''|escapejs }}', [{% for cat in postulante.categorias.all %}'{{ cat.id }}',{% endfor %}], '{{ postulante.guardado_en_pool|yesno:'true,false' }}', true)" style="cursor: pointer;" title="Doble clic para ver detalle o editar">
+                        <td style="font-weight: 500; color: var(--text-main);">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--bg-main); display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--primary); flex-shrink: 0;">
+                                    {{ postulante.nombre|first|upper }}{{ postulante.apellido|first|upper }}
+                                </div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                                        <span>{{ postulante.nombre }} {{ postulante.apellido }}</span>
+                                        {% if postulante.guardado_en_pool %}
+                                            <span class="badge badge-blue" style="padding: 0.1rem 0.35rem; font-size: 0.65rem; border-radius: 4px;" title="Guardado en Base de Datos de Talentos">
+                                                <i data-lucide="database" style="width: 10px; height: 10px; margin-right: 0.15rem;"></i> Pool
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    {% if postulante.fecha_nacimiento %}
+                                        <span style="font-size: 0.75rem; color: var(--text-dim);">Edad: {{ postulante.edad }} años</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 500;">{{ postulante.titulo_principal }}</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">
+                                {% for cat in postulante.categorias.all %}
+                                    <span class="badge badge-gray" style="font-size: 0.7rem;">{{ cat.nombre }}</span>
+                                {% endfor %}
+                            </div>
+                            {% if postulante.selector or postulante.selector_cuit %}
+                                <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem;">
+                                    <i data-lucide="user" style="width: 12px; height: 12px;"></i>
+                                    <span>Selector: {% if postulante.selector %}{{ postulante.selector.nombre_completo }}{% else %}{{ postulante.selector_cuit }}{% endif %}</span>
+                                </div>
+                            {% endif %}
+                            {% if postulante.postulaciones.exists %}
+                                <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">
+                                    {% for post in postulante.postulaciones.all %}
+                                        <a href="/postulaciones/informe/{{ post.id }}/" class="btn btn-secondary" style="padding: 0.25rem 0.45rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem; border: 1px solid rgba(10, 132, 255, 0.25); background: rgba(10, 132, 255, 0.05); text-decoration: none; color: #0A84FF; border-radius: 6px;" title="Informe de Entrevista para {{ post.perfil_busqueda.titulo_puesto }}">
+                                            <i data-lucide="clipboard-list" style="width: 12px; height: 12px;"></i>
+                                            Informe: {{ post.perfil_busqueda.titulo_puesto|truncatechars:18 }}
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>{{ postulante.email }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-dim);">{{ postulante.telefono }}</div>
+                        </td>
+                        <td>
+                            <div>{{ postulante.ciudad }}, {{ postulante.provincia }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-dim);">
+                                {% if postulante.disponibilidad_mudanza %}
+                                    <span style="color: var(--primary);">✈️ Mudar: Sí</span>
+                                {% else %}
+                                    Argentina
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if postulante.salario_pretendido_minimo %}
+                                <div style="font-size: 0.85rem; font-weight: 500;">
+                                    Pret: ${{ postulante.salario_pretendido_minimo|floatformat:"0" }}
+                                    {% if postulante.salario_pretendido_maximo %} - ${{ postulante.salario_pretendido_maximo|floatformat:"0" }}{% endif %}
+                                </div>
+                            {% endif %}
+                            <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.15rem;">
+                                {% if postulante.cv_archivo %}
+                                    <a href="{{ postulante.cv_archivo.url }}" target="_blank" class="btn btn-secondary" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.2rem;">
+                                        <i data-lucide="file-text" style="width: 12px; height: 12px;"></i> CV PDF
+                                    </a>
+                                {% else %}
+                                    <span style="font-size: 0.75rem; color: var(--text-dim); italic;">Sin CV</span>
+                                {% endif %}
+                                
+                                {% if postulante.linkedin_url %}
+                                    <a href="{{ postulante.linkedin_url }}" target="_blank" style="color: var(--text-dim); hover: color: var(--primary);"><i data-lucide="linkedin" style="width: 14px; height: 14px;"></i></a>
+                                {% endif %}
+                                {% if postulante.github_url %}
+                                    <a href="{{ postulante.github_url }}" target="_blank" style="color: var(--text-dim);"><i data-lucide="github" style="width: 14px; height: 14px;"></i></a>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: {{ postulante.estado.color }}18; color: {{ postulante.estado.color }}; border: 1px solid {{ postulante.estado.color }}33;">
+                                {{ postulante.estado.nombre }}
+                            </span>
+                            <div style="font-size: 0.65rem; color: var(--text-dim); margin-top: 0.25rem; display: flex; align-items: center; gap: 0.2rem;" title="Fecha de último movimiento de estado">
+                                <i data-lucide="clock" style="width: 10px; height: 10px;"></i>
+                                <span class="last-move-time" id="table-lastmove-{{ postulante.id }}">{{ postulante.fecha_cambio_estado|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                <form method="POST" action="/postulantes/toggle-pool/{{ postulante.id }}/" style="display: inline;">
+                                    {% csrf_token %}
+                                    {% if postulante.guardado_en_pool %}
+                                        <button type="submit" class="btn btn-secondary" style="padding: 0.4rem 0.6rem; border-radius: 8px; color: var(--danger); border: 1px solid rgba(255, 59, 48, 0.2); background: rgba(255, 59, 48, 0.05);" title="Quitar de la Base de Talentos">
+                                            <i data-lucide="database-backup" style="width: 14px; height: 14px;"></i>
+                                            Quitar Base
+                                        </button>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-secondary" style="padding: 0.4rem 0.6rem; border-radius: 8px; color: var(--primary); border: 1px solid rgba(0, 102, 204, 0.2); background: rgba(0, 102, 204, 0.05);" title="Agregar a la Base de Talentos">
+                                            <i data-lucide="database" style="width: 14px; height: 14px;"></i>
+                                            A Base
+                                        </button>
+                                    {% endif %}
+                                </form>
+                                <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.25rem;" onclick="abrirEditarModal('{{ postulante.id }}', '{{ postulante.nombre|escapejs }}', '{{ postulante.apellido|escapejs }}', '{{ postulante.email|escapejs }}', '{{ postulante.telefono|escapejs }}', '{{ postulante.fecha_nacimiento|default:''|escapejs }}', '{{ postulante.genero|escapejs }}', '{{ postulante.pais|escapejs }}', '{{ postulante.provincia|escapejs }}', '{{ postulante.ciudad|escapejs }}', '{{ postulante.disponibilidad_mudanza|yesno:'true,false' }}', '{{ postulante.titulo_principal|escapejs }}', '{{ postulante.resumen_profesional|escapejs }}', '{{ postulante.experiencia_anos|escapejs }}', '{{ postulante.titulaciones|escapejs }}', '{{ postulante.habilidades|escapejs }}', '{{ postulante.idiomas|escapejs }}', '{{ postulante.salario_pretendido_minimo|default:''|escapejs }}', '{{ postulante.salario_pretendido_maximo|default:''|escapejs }}', '{{ postulante.acepta_remoto|yesno:'true,false' }}', '{{ postulante.acepta_hibrido|yesno:'true,false' }}', '{{ postulante.acepta_presencial|yesno:'true,false' }}', '{{ postulante.linkedin_url|default:''|escapejs }}', '{{ postulante.portfolio_url|default:''|escapejs }}', '{{ postulante.github_url|default:''|escapejs }}', '{{ postulante.estado.id }}', '{{ postulante.selector.id|default:'' }}', '{{ postulante.selector_cuit|default:''|escapejs }}', [{% for cat in postulante.categorias.all %}'{{ cat.id }}',{% endfor %}], '{{ postulante.guardado_en_pool|yesno:'true,false' }}', false)">
+                                    <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
+                                    Editar
+                                </button>
+                                <form method="POST" action="{% url 'eliminar_postulante' postulante.id %}" style="display: inline;" onsubmit="return confirm('¿Estás completamente seguro de que deseas eliminar permanentemente al postulante «{{ postulante.nombre_completo|escapejs }}»? Esta acción no se puede deshacer y borrará también sus postulaciones e informes asociados.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-secondary" style="padding: 0.4rem 0.6rem; border-radius: 8px; border: 1px solid rgba(255, 59, 48, 0.25); background: rgba(255, 59, 48, 0.04); display: inline-flex; align-items: center; gap: 0.25rem; color: var(--danger); cursor: pointer;" title="Eliminar Postulante">
+                                        <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                                        Eliminar
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 4rem; color: var(--text-dim);">
+                            <i data-lucide="users-round" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.5; color: var(--text-light);"></i>
+                            <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main); font-size: 1.1rem;">No hay postulantes cargados</div>
+                            Aún no has registrado ningún perfil en el sistema. Comienza cargando tu primer candidato.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Postulante -->
+<div class="modal-overlay" id="modalNuevoPostulante">
+    <div class="modal-content" style="max-width: 680px;">
+        <div class="modal-header">
+            <div class="modal-title">Cargar Nuevo Postulante</div>
+            <button class="modal-close" onclick="toggleModal('modalNuevoPostulante')">
+                <i data-lucide="x" style="width: 20px;"></i>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'postulantes' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                
+                <!-- Sección 1: Datos Personales -->
+                <h3 style="font-size: 1rem; margin: 0 0 1rem; color: var(--primary); font-weight: 600;">1. Información Personal</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" name="nombre" class="form-control" required placeholder="Ej: Maria">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Apellido *</label>
+                        <input type="text" name="apellido" class="form-control" required placeholder="Ej: Gómez">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Email de Contacto *</label>
+                        <input type="email" name="email" class="form-control" required placeholder="maria.gomez@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Teléfono *</label>
+                        <input type="text" name="telefono" class="form-control" required placeholder="+54 9 341 1234567">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Fecha de Nacimiento</label>
+                        <input type="date" name="fecha_nacimiento" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Género</label>
+                        <select name="genero" class="form-control">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="masculino">Masculino</option>
+                            <option value="femenino">Femenino</option>
+                            <option value="otro">Otro</option>
+                            <option value="prefiere_no_decir">Prefiere no decir</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Sección 2: Ubicación -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">2. Ubicación</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ciudad *</label>
+                        <input type="text" name="ciudad" class="form-control" required placeholder="Ej: Rosario">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Provincia *</label>
+                        <input type="text" name="provincia" class="form-control" required placeholder="Ej: Santa Fe">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">País *</label>
+                        <input type="text" name="pais" class="form-control" required value="Argentina">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; padding-top: 1.5rem;">
+                        <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="disponibilidad_mudanza" style="width: 18px; height: 18px;">
+                            Disponibilidad para mudarse
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Sección 3: Datos Profesionales -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">3. Datos Profesionales</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Título Principal *</label>
+                        <input type="text" name="titulo_principal" class="form-control" required placeholder="Ej: Desarrollador Python Ssr">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Años de Experiencia *</label>
+                        <input type="number" name="experiencia_anos" class="form-control" value="0" min="0" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Categorías (Mantener CTRL para selección múltiple)</label>
+                        <select name="categorias" class="form-control" multiple style="height: 100px;">
+                            {% for cat in categorias %}
+                                <option value="{{ cat.id }}">{{ cat.nombre }} ({{ cat.get_area_display }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Resumen Profesional</label>
+                        <textarea name="resumen_profesional" class="form-control" style="height: 80px;" placeholder="Breve extracto de su perfil..."></textarea>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Titulaciones (separadas por comas)</label>
+                        <input type="text" name="titulaciones" class="form-control" placeholder="Ej: Ingeniero en Sistemas, Certificación Scrum Master">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Habilidades Clave (separadas por comas)</label>
+                        <input type="text" name="habilidades" class="form-control" placeholder="Ej: Python, Django, PostgreSQL, Git">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Idiomas</label>
+                        <input type="text" name="idiomas" class="form-control" placeholder="Ej: Español (Nativo), Inglés (C1)">
+                    </div>
+                </div>
+
+                <!-- Sección 4: Preferencias Laborales -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">4. Preferencias Laborales</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Salario Pretendido Mínimo</label>
+                        <input type="number" step="0.01" name="salario_pretendido_minimo" class="form-control" placeholder="Ej: 500000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Salario Pretendido Máximo</label>
+                        <input type="number" step="0.01" name="salario_pretendido_maximo" class="form-control" placeholder="Ej: 800000">
+                    </div>
+                </div>
+                <div class="form-row" style="gap: 1.5rem; padding: 0.5rem 0;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="acepta_remoto" checked style="width: 18px; height: 18px;">
+                        Acepta Remoto
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="acepta_hibrido" checked style="width: 18px; height: 18px;">
+                        Acepta Híbrido
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="acepta_presencial" checked style="width: 18px; height: 18px;">
+                        Acepta Presencial
+                    </label>
+                </div>
+
+                <!-- Sección 5: Adjuntos y Enlaces -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">5. Adjuntos y Enlaces</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Archivo de Currículum (PDF)</label>
+                        <input type="file" name="cv_archivo" accept=".pdf" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">LinkedIn URL</label>
+                        <input type="url" name="linkedin_url" class="form-control" placeholder="https://linkedin.com/in/...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">GitHub URL</label>
+                        <input type="url" name="github_url" class="form-control" placeholder="https://github.com/...">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Portfolio URL</label>
+                        <input type="url" name="portfolio_url" class="form-control" placeholder="https://...">
+                    </div>
+                </div>
+
+                <!-- Sección 6: Control y Asignación -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">6. Control y Asignación</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Selector Asignado (Quién lo cargó)</label>
+                        <select name="selector_id" class="form-control">
+                            <option value="">-- Seleccionar Selector --</option>
+                            {% for selector in selectores %}
+                                <option value="{{ selector.id }}">{{ selector.nombre_completo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CUIT del Selector</label>
+                        <input type="text" name="selector_cuit" class="form-control" placeholder="Ej: 20-12345678-9">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Estado *</label>
+                        <select name="estado" class="form-control">
+                            {% for est in estados %}
+                                <option value="{{ est.id }}">{{ est.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; padding-top: 1.5rem;">
+                        <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="guardado_en_pool" checked style="width: 18px; height: 18px;">
+                            Guardar en Base de Datos de Talentos
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="toggleModal('modalNuevoPostulante')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Registrar Postulante</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Editar Postulante -->
+<div class="modal-overlay" id="modalEditarPostulante">
+    <div class="modal-content" style="max-width: 680px;">
+        <div class="modal-header">
+            <div class="modal-title" id="modalEditarPostulanteTitle">Editar Postulante</div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button type="button" class="btn btn-primary" id="btnToggleEditPostulante" onclick="enableEditMode('formEditarPostulante', 'btnToggleEditPostulante', 'modalEditarPostulanteFooter')" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 8px;">
+                    <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Editar
+                </button>
+                <button type="button" class="modal-close" onclick="toggleModal('modalEditarPostulante')">
+                    <i data-lucide="x" style="width: 20px;"></i>
+                </button>
+            </div>
+        </div>
+        <form method="POST" id="formEditarPostulante" action="" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                
+                <!-- Sección 1: Datos Personales -->
+                <h3 style="font-size: 1rem; margin: 0 0 1rem; color: var(--primary); font-weight: 600;">1. Información Personal</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" name="nombre" id="edit_nombre" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Apellido *</label>
+                        <input type="text" name="apellido" id="edit_apellido" class="form-control" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Email de Contacto *</label>
+                        <input type="email" name="email" id="edit_email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Teléfono *</label>
+                        <input type="text" name="telefono" id="edit_telefono" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Fecha de Nacimiento</label>
+                        <input type="date" name="fecha_nacimiento" id="edit_fecha_nacimiento" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Género</label>
+                        <select name="genero" id="edit_genero" class="form-control">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="masculino">Masculino</option>
+                            <option value="femenino">Femenino</option>
+                            <option value="otro">Otro</option>
+                            <option value="prefiere_no_decir">Prefiere no decir</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Sección 2: Ubicación -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">2. Ubicación</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ciudad *</label>
+                        <input type="text" name="ciudad" id="edit_ciudad" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Provincia *</label>
+                        <input type="text" name="provincia" id="edit_provincia" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">País *</label>
+                        <input type="text" name="pais" id="edit_pais" class="form-control" required>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; padding-top: 1.5rem;">
+                        <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="disponibilidad_mudanza" id="edit_disponibilidad_mudanza" style="width: 18px; height: 18px;">
+                            Disponibilidad para mudarse
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Sección 3: Datos Profesionales -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">3. Datos Profesionales</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Título Principal *</label>
+                        <input type="text" name="titulo_principal" id="edit_titulo_principal" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Años de Experiencia *</label>
+                        <input type="number" name="experiencia_anos" id="edit_experiencia_anos" class="form-control" min="0" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Categorías (Mantener CTRL para selección múltiple)</label>
+                        <select name="categorias" id="edit_categorias" class="form-control" multiple style="height: 100px;">
+                            {% for cat in categorias %}
+                                <option value="{{ cat.id }}">{{ cat.nombre }} ({{ cat.get_area_display }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Resumen Profesional</label>
+                        <textarea name="resumen_profesional" id="edit_resumen_profesional" class="form-control" style="height: 80px;"></textarea>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Titulaciones (separadas por comas)</label>
+                        <input type="text" name="titulaciones" id="edit_titulaciones" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Habilidades Clave (separadas por comas)</label>
+                        <input type="text" name="habilidades" id="edit_habilidades" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Idiomas</label>
+                        <input type="text" name="idiomas" id="edit_idiomas" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Sección 4: Preferencias Laborales -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">4. Preferencias Laborales</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Salario Pretendido Mínimo</label>
+                        <input type="number" step="0.01" name="salario_pretendido_minimo" id="edit_salario_pretendido_minimo" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Salario Pretendido Máximo</label>
+                        <input type="number" step="0.01" name="salario_pretendido_maximo" id="edit_salario_pretendido_maximo" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row" style="gap: 1.5rem; padding: 0.5rem 0;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="acepta_remoto" id="edit_acepta_remoto" style="width: 18px; height: 18px;">
+                        Acepta Remoto
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="acepta_hibrido" id="edit_acepta_hibrido" style="width: 18px; height: 18px;">
+                        Acepta Híbrido
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="acepta_presencial" id="edit_acepta_presencial" style="width: 18px; height: 18px;">
+                        Acepta Presencial
+                    </label>
+                </div>
+
+                <!-- Sección 5: Adjuntos y Enlaces -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">5. Adjuntos y Enlaces</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Reemplazar Archivo de Currículum (PDF)</label>
+                        <input type="file" name="cv_archivo" accept=".pdf" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">LinkedIn URL</label>
+                        <input type="url" name="linkedin_url" id="edit_linkedin_url" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">GitHub URL</label>
+                        <input type="url" name="github_url" id="edit_github_url" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Portfolio URL</label>
+                        <input type="url" name="portfolio_url" id="edit_portfolio_url" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Sección 6: Control y Asignación -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">6. Control y Asignación</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Selector Asignado (Quién lo cargó)</label>
+                        <select name="selector_id" id="edit_selector_id" class="form-control">
+                            <option value="">-- Seleccionar Selector --</option>
+                            {% for selector in selectores %}
+                                <option value="{{ selector.id }}">{{ selector.nombre_completo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CUIT del Selector</label>
+                        <input type="text" name="selector_cuit" id="edit_selector_cuit" class="form-control" placeholder="Ej: 20-12345678-9">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Estado *</label>
+                        <select name="estado" id="edit_estado" class="form-control">
+                            {% for est in estados %}
+                                <option value="{{ est.id }}">{{ est.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; padding-top: 1.5rem;">
+                        <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="guardado_en_pool" id="edit_guardado_en_pool" style="width: 18px; height: 18px;">
+                            Guardar en Base de Datos de Talentos
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer" id="modalEditarPostulanteFooter">
+                <button type="button" class="btn btn-secondary" onclick="toggleModal('modalEditarPostulante')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Modal Gestionar Estados -->
+<div class="modal-overlay" id="modalGestionarEstados">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <div class="modal-title">Gestionar Estados de Postulantes</div>
+            <button class="modal-close" onclick="toggleModal('modalGestionarEstados')">
+                <i data-lucide="x" style="width: 20px;"></i>
+            </button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            
+            <!-- Listado de Estados Existentes -->
+            <h3 style="font-size: 1rem; margin: 0 0 1rem; color: var(--primary); font-weight: 600;">Estados Existentes</h3>
+            <div class="table-container" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--bg-main); border-bottom: 1px solid var(--border);">
+                            <th style="padding: 0.5rem; text-align: left; font-size: 0.8rem;">Estado</th>
+                            <th style="padding: 0.5rem; text-align: left; font-size: 0.8rem;">Orden</th>
+                            <th style="padding: 0.5rem; text-align: center; font-size: 0.8rem;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for est in estados %}
+                        <tr style="border-bottom: 1px solid var(--border-light); font-size: 0.85rem;">
+                            <td style="padding: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: {{ est.color }}; border: 1px solid rgba(0,0,0,0.1);"></span>
+                                <strong>{{ est.nombre }}</strong>
+                                {% if est.no_borrable %}
+                                    <span style="font-size: 0.7rem; color: var(--text-dim); background: var(--bg-main); padding: 0.1rem 0.3rem; border-radius: 4px; border: 1px solid var(--border);">Fijo</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 0.5rem;">{{ est.orden }}</td>
+                            <td style="padding: 0.5rem; text-align: center;">
+                                <div style="display: flex; gap: 0.35rem; justify-content: center;">
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" 
+                                            onclick="cargarEstadoEnFormulario('{{ est.id }}', '{{ est.nombre|escapejs }}', '{{ est.color|escapejs }}', '{{ est.orden }}', {{ est.no_borrable|yesno:'true,false' }})">
+                                        <i data-lucide="edit" style="width: 12px; height: 12px;"></i> Editar
+                                    </button>
+                                    {% if not est.no_borrable %}
+                                    <form method="POST" action="{% url 'eliminar_estado' est.id %}" style="display: inline;" onsubmit="return confirm('¿Seguro que deseas eliminar el estado «{{ est.nombre|escapejs }}»? Solo se eliminará si no tiene postulantes asociados.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--danger); border: 1px solid rgba(255, 59, 48, 0.2); background: rgba(255, 59, 48, 0.05);">
+                                            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Formulario para Agregar / Editar Estado -->
+            <h3 id="titulo-form-estado" style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">Crear Nuevo Estado</h3>
+            <form method="POST" action="{% url 'gestionar_estados' %}" id="form-gestionar-estado">
+                {% csrf_token %}
+                <input type="hidden" name="estado_id" id="form-estado-id" value="">
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label class="form-label">Nombre del Estado *</label>
+                        <input type="text" name="nombre" id="form-estado-nombre" class="form-control" required placeholder="Ej: En evaluación médica">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">Color *</label>
+                        <input type="color" name="color" id="form-estado-color" class="form-control" style="height: 38px; padding: 2px; cursor: pointer;" value="#34c759">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Orden de Visualización</label>
+                        <input type="number" name="orden" id="form-estado-orden" class="form-control" value="0" min="0">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="limpiarFormularioEstado()" style="display: none;" id="btn-cancelar-edicion-estado">Cancelar Edición</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-estado">Crear Estado</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal.classList.contains('active')) {
+            modal.classList.remove('active');
+        } else {
+            modal.classList.add('active');
+        }
+    }
+
+    function setFormReadOnly(formId, isReadOnly) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+        const elements = form.querySelectorAll('input, select, textarea');
+        elements.forEach(el => {
+            if (el.name === 'csrfmiddlewaretoken') return;
+            if (isReadOnly) {
+                el.setAttribute('disabled', 'true');
+            } else {
+                el.removeAttribute('disabled');
+            }
+        });
+    }
+
+    function enableEditMode(formId, btnId, footerId) {
+        setFormReadOnly(formId, false);
+        document.getElementById(btnId).style.display = 'none';
+        document.getElementById(footerId).style.display = 'flex';
+    }
+
+    function abrirEditarModal(
+        id, nombre, apellido, email, telefono, fechaNacimiento, genero, pais, provincia, ciudad,
+        disponibilidadMudanza, tituloPrincipal, resumenProfesional, experienciaAnos, titulaciones,
+        habilidades, idiomas, salarioMin, salarioMax, aceptaRemoto, aceptaHibrido, aceptaPresencial,
+        linkedinUrl, portfolioUrl, githubUrl, estado, selectorId, selectorCuit, categoriasIds, guardadoEnPool,
+        readOnlyMode = false
+    ) {
+        // Set action URL dynamically
+        const form = document.getElementById('formEditarPostulante');
+        form.action = `/postulantes/editar/${id}/`;
+        
+        // Populate fields
+        document.getElementById('edit_nombre').value = nombre;
+        document.getElementById('edit_apellido').value = apellido;
+        document.getElementById('edit_email').value = email;
+        document.getElementById('edit_telefono').value = telefono;
+        document.getElementById('edit_fecha_nacimiento').value = fechaNacimiento;
+        document.getElementById('edit_genero').value = genero;
+        document.getElementById('edit_pais').value = pais;
+        document.getElementById('edit_provincia').value = provincia;
+        document.getElementById('edit_ciudad').value = ciudad;
+        document.getElementById('edit_disponibilidad_mudanza').checked = disponibilidadMudanza === 'true';
+        
+        document.getElementById('edit_titulo_principal').value = tituloPrincipal;
+        document.getElementById('edit_resumen_profesional').value = resumenProfesional;
+        document.getElementById('edit_experiencia_anos').value = experienciaAnos;
+        document.getElementById('edit_titulaciones').value = titulaciones;
+        document.getElementById('edit_habilidades').value = habilidades;
+        document.getElementById('edit_idiomas').value = idiomas;
+        
+        document.getElementById('edit_salario_pretendido_minimo').value = salarioMin;
+        document.getElementById('edit_salario_pretendido_maximo').value = salarioMax;
+        
+        document.getElementById('edit_acepta_remoto').checked = aceptaRemoto === 'true';
+        document.getElementById('edit_acepta_hibrido').checked = aceptaHibrido === 'true';
+        document.getElementById('edit_acepta_presencial').checked = aceptaPresencial === 'true';
+        
+        document.getElementById('edit_linkedin_url').value = linkedinUrl;
+        document.getElementById('edit_portfolio_url').value = portfolioUrl;
+        document.getElementById('edit_github_url').value = githubUrl;
+        
+        document.getElementById('edit_estado').value = estado;
+        document.getElementById('edit_selector_id').value = selectorId;
+        document.getElementById('edit_selector_cuit').value = selectorCuit;
+        document.getElementById('edit_guardado_en_pool').checked = guardadoEnPool === 'true';
+        
+        // Populate multiple select for categories
+        const selectCats = document.getElementById('edit_categorias');
+        for (let i = 0; i < selectCats.options.length; i++) {
+            const opt = selectCats.options[i];
+            opt.selected = categoriasIds.includes(opt.value);
+        }
+
+        // Configure read-only view or edit mode
+        const titleEl = document.getElementById('modalEditarPostulanteTitle');
+        const toggleBtn = document.getElementById('btnToggleEditPostulante');
+        const footer = document.getElementById('modalEditarPostulanteFooter');
+
+        if (readOnlyMode) {
+            titleEl.textContent = "Detalle del Postulante";
+            setFormReadOnly('formEditarPostulante', true);
+            toggleBtn.style.display = 'inline-flex';
+            footer.style.display = 'none';
+        } else {
+            titleEl.textContent = "Editar Postulante";
+            setFormReadOnly('formEditarPostulante', false);
+            toggleBtn.style.display = 'none';
+            footer.style.display = 'flex';
+        }
+        
+        // Open modal
+        toggleModal('modalEditarPostulante');
+    }
+
+    function toggleAdvancedFilters() {
+        const section = document.getElementById('advancedFiltersSection');
+        if (section.style.display === 'none') {
+            section.style.display = 'grid';
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
+    // Dropdown de tabs de filtro
+    function toggleTabDropdown(tipo) {
+        const ids = ['busqueda', 'empresa', 'selector'];
+        ids.forEach(id => {
+            const el = document.getElementById(`dropdown-${id}`);
+            if (el) {
+                if (id === tipo) {
+                    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+                } else {
+                    el.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    // Cerrar dropdowns al hacer click fuera
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#tab-busqueda-wrapper') &&
+            !e.target.closest('#tab-empresa-wrapper') &&
+            !e.target.closest('#tab-selector-wrapper')) {
+            ['busqueda', 'empresa', 'selector'].forEach(id => {
+                const el = document.getElementById(`dropdown-${id}`);
+                if (el) el.style.display = 'none';
+            });
+        }
+    });
+
+    // ============================================
+    // KANBAN DE POSTULANTES - Drag & Drop + Botones
+    // ============================================
+    function allowDropPost(ev) { 
+        ev.preventDefault(); 
+        ev.currentTarget.classList.add('drag-over-col');
+    }
+
+    function dragPost(ev) {
+        ev.dataTransfer.setData("text/plain", ev.target.id);
+        ev.target.style.opacity = '0.5';
+    }
+
+    function dropPost(ev, targetEstadoId) {
+        ev.preventDefault();
+        ev.currentTarget.classList.remove('drag-over-col');
+        const data = ev.dataTransfer.getData("text/plain");
+        const card = document.getElementById(data);
+        if (!card) return;
+        const column = ev.target.closest('.kanban-col-post');
+        if (!column) return;
+        const container = column.querySelector('.kanban-post-container');
+        if (!container) return;
+        const postulanteId = data.replace('pkcard-', '');
+        moverTarjetaPostulante(postulanteId, targetEstadoId, card, container);
+    }
+
+    function cambiarEstadoPostulanteSelect(postulanteId, selectElement) {
+        const targetEstadoId = selectElement.value;
+        const card = document.getElementById(`pkcard-${postulanteId}`);
+        const targetColumn = document.querySelector(`.kanban-col-post[data-estado-post="${targetEstadoId}"]`);
+        if (!targetColumn || !card) return;
+        const container = targetColumn.querySelector('.kanban-post-container');
+        if (!container) return;
+        moverTarjetaPostulante(postulanteId, targetEstadoId, card, container);
+    }
+
+    function moverTarjetaPostulante(postulanteId, targetEstadoId, card, container) {
+        const formData = new FormData();
+        formData.append('estado', targetEstadoId);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch(`/postulantes/cambiar-estado/${postulanteId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                container.appendChild(card);
+                card.style.opacity = '1';
+
+                updateKanbanCounts();
+
+                // Update select element inside the card to match the new state
+                const selectEl = card.querySelector('select');
+                if (selectEl) {
+                    selectEl.value = data.estado_id;
+                }
+
+                // Update the date last moved inside the card
+                const dateEl = document.getElementById(`lastmove-${postulanteId}`);
+                if (dateEl) {
+                    dateEl.textContent = data.fecha_cambio;
+                }
+
+                // Update badge and date in the main table if visible
+                const tableLastMove = document.getElementById(`table-lastmove-${postulanteId}`);
+                if (tableLastMove) {
+                    tableLastMove.textContent = data.fecha_cambio;
+                }
+
+                const tableRows = document.querySelectorAll('tr[ondblclick*="abrirEditarModal"]');
+                tableRows.forEach(row => {
+                    const dblclickAttr = row.getAttribute('ondblclick');
+                    if (dblclickAttr && dblclickAttr.includes(`'${postulanteId}'`)) {
+                        const cells = row.cells;
+                        if (cells && cells.length >= 6) {
+                            const stateCell = cells[5];
+                            if (stateCell) {
+                                stateCell.innerHTML = `
+                                    <span class="badge" style="background: ${data.color}18; color: ${data.color}; border: 1px solid ${data.color}33;">
+                                        ${data.estado}
+                                    </span>
+                                    <div style="font-size: 0.65rem; color: var(--text-dim); margin-top: 0.25rem; display: flex; align-items: center; gap: 0.2rem;" title="Fecha de último movimiento de estado">
+                                        <i data-lucide="clock" style="width: 10px; height: 10px;"></i>
+                                        <span class="last-move-time" id="table-lastmove-${postulanteId}">${data.fecha_cambio}</span>
+                                    </div>
+                                `;
+                                if (window.lucide) window.lucide.createIcons();
+                            }
+                        }
+                    }
+                });
+
+                updateKanbanPostCounts();
+
+                // Si se creo una comision al contratar, mostrar notificacion especial
+                if (data.comision_creada) {
+                    showPostToast(
+                        `✅ ¡${data.estado}! Se generó ${
+                            data.comisiones_count > 1 ? data.comisiones_count + ' comisiones' : 'una comisión'
+                        } pendiente de cobro. <a href="/comisiones/" style="color:#fff;font-weight:700;text-decoration:underline;">Ver Comisiones →</a>`,
+                        '#34c759',
+                        6000
+                    );
+                } else {
+                    showPostToast(`Postulante movido a: ${data.estado}`);
+                }
+            } else {
+                alert('Error al cambiar el estado: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(err => { console.error(err); alert('Error de red al intentar cambiar el estado.'); });
+    }
+
+    function updateKanbanPostCounts() {
+        document.querySelectorAll('.kanban-col-post').forEach(col => {
+            const estado = col.getAttribute('data-estado-post');
+            const count = col.querySelectorAll('.kanban-post-card').length;
+            const badge = document.getElementById(`pcount-${estado}`);
+            if (badge) badge.textContent = count;
+        });
+    }
+
+    function showPostToast(message, color = '#0a84ff', duration = 3000) {
+        let toast = document.getElementById('post-toast-notification');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'post-toast-notification';
+            toast.style.cssText = 'position:fixed;bottom:2rem;right:2rem;color:#fff;padding:0.9rem 1.5rem;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.2);z-index:9999;transition:opacity 0.3s ease;font-weight:500;max-width:380px;line-height:1.5;';
+            document.body.appendChild(toast);
+        }
+        toast.style.background = color;
+        toast.innerHTML = message;
+        toast.style.opacity = '1';
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => { toast.style.display = 'none'; }, 300); }, duration);
+    }
+
+    // Funciones para gestionar estados en el modal
+    function cargarEstadoEnFormulario(id, nombre, color, orden, noBorrable) {
+        document.getElementById('form-estado-id').value = id;
+        document.getElementById('form-estado-nombre').value = nombre;
+        document.getElementById('form-estado-color').value = color;
+        document.getElementById('form-estado-orden').value = orden;
+
+        if (noBorrable) {
+            document.getElementById('form-estado-nombre').setAttribute('readonly', 'true');
+            document.getElementById('titulo-form-estado').textContent = "Editar Color y Orden (Estado Predeterminado)";
+        } else {
+            document.getElementById('form-estado-nombre').removeAttribute('readonly');
+            document.getElementById('titulo-form-estado').textContent = "Editar Estado";
+        }
+
+        document.getElementById('btn-cancelar-edicion-estado').style.display = 'inline-block';
+        document.getElementById('btn-submit-estado').textContent = "Guardar Cambios";
+    }
+
+    function limpiarFormularioEstado() {
+        document.getElementById('form-estado-id').value = "";
+        document.getElementById('form-estado-nombre').value = "";
+        document.getElementById('form-estado-nombre').removeAttribute('readonly');
+        document.getElementById('form-estado-color').value = "#34c759";
+        document.getElementById('form-estado-orden').value = "0";
+
+        document.getElementById('titulo-form-estado').textContent = "Crear Nuevo Estado";
+        document.getElementById('btn-cancelar-edicion-estado').style.display = 'none';
+        document.getElementById('btn-submit-estado').textContent = "Crear Estado";
+    }
+
+    function changeViewMode(mode) {
+        const kanban = document.getElementById('section-kanban-board-postulantes');
+        const list = document.getElementById('section-list-table-postulantes');
+        
+        const btnBoth = document.getElementById('btn-view-both');
+        const btnKanban = document.getElementById('btn-view-kanban');
+        const btnList = document.getElementById('btn-view-list');
+        
+        if (!kanban || !list || !btnBoth || !btnKanban || !btnList) return;
+        
+        if (mode === 'both') {
+            kanban.style.display = 'block';
+            list.style.display = 'block';
+            
+            btnBoth.style.background = 'var(--primary)';
+            btnBoth.style.color = 'white';
+            btnKanban.style.background = 'transparent';
+            btnKanban.style.color = 'var(--text-main)';
+            btnList.style.background = 'transparent';
+            btnList.style.color = 'var(--text-main)';
+        } else if (mode === 'kanban') {
+            kanban.style.display = 'block';
+            list.style.display = 'none';
+            
+            btnBoth.style.background = 'transparent';
+            btnBoth.style.color = 'var(--text-main)';
+            btnKanban.style.background = 'var(--primary)';
+            btnKanban.style.color = 'white';
+            btnList.style.background = 'transparent';
+            btnList.style.color = 'var(--text-main)';
+        } else if (mode === 'list') {
+            kanban.style.display = 'none';
+            list.style.display = 'block';
+            
+            btnBoth.style.background = 'transparent';
+            btnBoth.style.color = 'var(--text-main)';
+            btnKanban.style.background = 'transparent';
+            btnKanban.style.color = 'var(--text-main)';
+            btnList.style.background = 'var(--primary)';
+            btnList.style.color = 'white';
+        }
+        localStorage.setItem('postulantes_view_mode', mode);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateKanbanPostCounts();
+        
+        const savedMode = localStorage.getItem('postulantes_view_mode') || 'both';
+        changeViewMode(savedMode);
+
+        // Drag hover effects for postulante columns
+        document.querySelectorAll('.kanban-col-post').forEach(col => {
+            col.addEventListener('dragenter', function() {
+                this.style.background = 'var(--bg-main)';
+                this.style.borderStyle = 'dashed';
+                this.style.borderColor = 'var(--primary)';
+            });
+            col.addEventListener('dragleave', function() {
+                this.style.background = 'var(--bg-card)';
+                this.style.borderStyle = 'solid';
+                this.style.borderColor = 'var(--border-light)';
+            });
+            col.addEventListener('drop', function() {
+                this.style.background = 'var(--bg-card)';
+                this.style.borderStyle = 'solid';
+                this.style.borderColor = 'var(--border-light)';
+            });
+        });
+    });
+
+    function updateKanbanCounts() {
+        const columns = document.querySelectorAll('.kanban-col-post');
+        columns.forEach(col => {
+            const count = col.querySelectorAll('.kanban-post-card').length;
+            const estadoId = col.getAttribute('data-estado-post');
+            const badge = document.getElementById(`pcount-${estadoId}`);
+            if (badge) {
+                badge.textContent = count;
+            }
+        });
+    }
+
+    // Restore opacity if drag ends without drop
+    document.addEventListener('dragend', function(ev) {
+        if(ev.target && ev.target.classList && ev.target.classList.contains('kanban-post-card')) {
+            ev.target.style.opacity = '1';
+        }
+        document.querySelectorAll('.kanban-col-post').forEach(col => {
+            col.classList.remove('drag-over-col');
+        });
+    });
+
+    // Run on init
+    document.addEventListener("DOMContentLoaded", function() {
+        updateKanbanCounts();
+    });
+
+</script>
+{% endblock %}

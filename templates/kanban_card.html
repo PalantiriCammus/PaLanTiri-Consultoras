@@ -1,0 +1,81 @@
+<!-- templates/kanban_card.html -->
+<div class="kanban-card card" 
+     id="kanban-card-{{ busqueda.id }}" 
+     draggable="true" 
+     ondragstart="drag(event)" 
+     ondblclick="abrirEditarBusqueda('{{ busqueda.id }}', '{{ busqueda.titulo_puesto|escapejs }}', '{{ busqueda.empresa.id }}', '{{ busqueda.areas|escapejs }}', '{{ busqueda.nivel|escapejs }}', '{{ busqueda.experiencia_minima_anios }}', '{{ busqueda.prioridad|escapejs }}', '{{ busqueda.cantidad_posiciones }}', '{% if busqueda.es_remoto %}remoto{% else %}presencial{% endif %}', '{{ busqueda.ubicacion_puesto|escapejs }}', '{{ busqueda.selector_asignado.id|default:'' }}', '{{ busqueda.salario_minimo|stringformat:'.0f' }}', '{{ busqueda.salario_maximo|stringformat:'.0f' }}', '{{ busqueda.comision_porcentaje|default:'' }}', '{{ busqueda.salario_estipulado_comision|default:'' }}', '{{ busqueda.jornada_laboral|escapejs }}', '{{ busqueda.jd_url|escapejs }}', '{{ busqueda.flyer_url|escapejs }}', '{{ busqueda.mision_puesto|escapejs }}', '{{ busqueda.descripcion|escapejs }}', '{{ busqueda.responsabilidades|escapejs }}', '{{ busqueda.requisitos_excluyentes|escapejs }}', '{{ busqueda.requisitos_deseables|escapejs }}', '{{ busqueda.educacion_minima|escapejs }}', '{{ busqueda.beneficios|escapejs }}', '{{ busqueda.fecha_inicio|date:'Y-m-d' }}', '{{ busqueda.observaciones|escapejs }}', '{{ busqueda.candidato_ideal|escapejs }}', '{{ busqueda.preguntas_informe|escapejs }}', '{{ busqueda.descansos|escapejs }}', '{{ busqueda.convenio|escapejs }}', '{{ busqueda.edad_rango|escapejs }}', '{{ busqueda.zona_residencia|escapejs }}', '{{ busqueda.estado.id }}', '{{ busqueda.codigo_busqueda|default:''|escapejs }}', '{{ busqueda.codigo_puesto|default:'' }}', '{{ busqueda.codigo_titulo|default:'' }}', [{% for asignacion in busqueda.asignaciones_selectores.all %}'{{ asignacion.selector.id }}',{% endfor %}], true)"
+     style="padding: 1rem; border: 1px solid var(--border); background: var(--bg-main); border-radius: 8px; cursor: grab; user-select: none; transition: transform 0.2s ease, box-shadow 0.2s ease; margin-bottom: 0.25rem; position: relative;"
+     onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)';"
+     onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+    
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; gap: 0.5rem;">
+        <span class="badge" style="font-size: 0.65rem; font-weight: 600; padding: 0.2rem 0.4rem; text-transform: uppercase;
+            {% if busqueda.prioridad == 'urgente' %}
+                background: rgba(255, 59, 48, 0.1); color: var(--danger);
+            {% elif busqueda.prioridad == 'alta' %}
+                background: rgba(242, 161, 52, 0.1); color: #f2a134;
+            {% elif busqueda.prioridad == 'normal' %}
+                background: rgba(10, 132, 255, 0.1); color: var(--primary);
+            {% else %}
+                background: rgba(142, 142, 147, 0.1); color: #8e8e93;
+            {% endif %}">
+            {{ busqueda.prioridad }}
+        </span>
+        <span style="font-size: 0.7rem; color: var(--text-dim);">
+            #{{ busqueda.id }}
+        </span>
+    </div>
+
+    <div style="font-weight: 600; color: var(--text-main); font-size: 0.9rem; margin-bottom: 0.25rem; line-height: 1.3;">
+        {{ busqueda.titulo_puesto }}
+    </div>
+
+    {% if busqueda.codigo_busqueda %}
+    <div style="font-size: 0.72rem; font-weight: 700; color: var(--primary); margin-bottom: 0.4rem; background: rgba(10, 132, 255, 0.05); padding: 0.15rem 0.35rem; border-radius: 4px; display: inline-block; border: 1px dashed rgba(10, 132, 255, 0.2);" title="Código de Búsqueda">
+        {{ busqueda.codigo_busqueda }}
+    </div>
+    {% endif %}
+
+    <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.75rem;">
+        <i data-lucide="building" style="width: 12px; height: 12px; flex-shrink: 0;"></i>
+        <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ busqueda.empresa.nombre }}</span>
+    </div>
+
+    <!-- Botones de cambio de estado rápido -->
+    <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.75rem;" onclick="event.stopPropagation();">
+        <select onchange="cambiarEstadoBusqueda({{ busqueda.id }}, this.value, this); event.stopPropagation();" style="width: 100%; font-size: 0.68rem; padding: 0.2rem; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); cursor: pointer;">
+            {% for est_opt in estados %}
+                <option value="{{ est_opt.id }}" {% if est_opt.id == busqueda.estado.id %}selected{% endif %}>Mover a: {{ est_opt.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-light); padding-top: 0.65rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-dim);">
+        <div style="display: flex; align-items: center; gap: 0.25rem;">
+            <i data-lucide="user" style="width: 12px; height: 12px;"></i>
+            <span>
+                {% if busqueda.selector_asignado %}
+                    {{ busqueda.selector_asignado.nombre }}
+                {% elif busqueda.asignaciones_selectores.exists %}
+                    {{ busqueda.asignaciones_selectores.count }} Selectores
+                {% else %}
+                    Sin asignar
+                {% endif %}
+            </span>
+        </div>
+        <div style="font-size: 0.7rem;">
+            {{ busqueda.fecha_creacion|date:"d/m" }}
+        </div>
+    </div>
+
+    <!-- Botón Ver Postulantes -->
+    <a href="/postulantes/?vista=busqueda&busqueda_id={{ busqueda.id }}"
+       onclick="event.stopPropagation();"
+       style="margin-top: 0.6rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.4rem 0.6rem; border-radius: 7px; background: var(--primary); color: white; font-size: 0.72rem; font-weight: 600; text-decoration: none; transition: opacity 0.15s ease; border: none; width: 100%; box-sizing: border-box;"
+       onmouseover="this.style.opacity='0.85'"
+       onmouseout="this.style.opacity='1'"
+       title="Ver postulantes activos de esta búsqueda">
+        <i data-lucide="users" style="width: 12px; height: 12px;"></i>
+        Ver Postulantes Activos
+    </a>
+</div>

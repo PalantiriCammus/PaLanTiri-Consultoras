@@ -1,0 +1,377 @@
+<!-- templates/estados_comision.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="animate-fade">
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h1 class="page-title">Estados de Comisiones</h1>
+            <p class="page-subtitle">Configura los estados del ciclo de cobros y liquidaciones, y define sus plantillas de alerta por WhatsApp y Correo.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button onclick="abrirModalNuevoEstado()" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; background-color: var(--success); border-color: var(--success);">
+                <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
+                Nuevo Estado
+            </button>
+            <a href="{% url 'comisiones' %}" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
+                Volver a Comisiones
+            </a>
+        </div>
+    </div>
+
+    <!-- Accordion container -->
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for estado in estados %}
+        <div class="card" style="padding: 0; overflow: hidden; border-left: 5px solid {{ estado.color }};">
+            
+            <!-- Accordion Header -->
+            <div onclick="toggleAccordion('content_{{ estado.id }}')" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; cursor: pointer; background: var(--card-bg);">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <span class="badge" style="background: {{ estado.color }}18; color: {{ estado.color }}; border: 1px solid {{ estado.color }}40; font-size: 0.9rem; font-weight: 600; padding: 0.3rem 0.75rem;">
+                        {{ estado.nombre }}
+                    </span>
+                    <span style="font-size: 0.8rem; color: var(--text-dim);">Código: <strong style="font-family: monospace; color: var(--text-main);">{{ estado.codigo }}</strong></span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="display: flex; gap: 0.5rem;">
+                        {% if estado.activar_email %}
+                        <span class="badge" style="background: rgba(10, 132, 255, 0.1); color: var(--primary); border: 1px solid rgba(10, 132, 255, 0.25); font-size: 0.75rem;">
+                            <i data-lucide="mail" style="width: 12px; display: inline; vertical-align: middle; margin-right: 0.25rem;"></i> Email
+                        </span>
+                        {% endif %}
+                        {% if estado.activar_whatsapp %}
+                        <span class="badge" style="background: rgba(37, 211, 102, 0.1); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.25); font-size: 0.75rem;">
+                            <i data-lucide="message-square" style="width: 12px; display: inline; vertical-align: middle; margin-right: 0.25rem;"></i> WhatsApp
+                        </span>
+                        {% endif %}
+                    </div>
+                    <i data-lucide="chevron-down" id="icon_content_{{ estado.id }}" style="width: 20px; transition: transform 0.2s;"></i>
+                </div>
+            </div>
+
+            <!-- Accordion Content -->
+            <div id="content_{{ estado.id }}" style="display: none; padding: 1.5rem; border-top: 1px solid var(--border-light); background: var(--bg-main);">
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="estado_id" value="{{ estado.id }}">
+
+                    <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem; margin-bottom: 1.5rem;">
+                        
+                        <!-- Inputs principales -->
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div style="display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label class="form-label">Nombre del Estado *</label>
+                                    <input type="text" name="nombre" value="{{ estado.nombre }}" required class="form-control">
+                                </div>
+                                <div>
+                                    <label class="form-label">Código del Estado *</label>
+                                    <input type="text" name="codigo" value="{{ estado.codigo }}" required class="form-control" placeholder="ej: pagada" style="font-family: monospace;">
+                                </div>
+                                <div>
+                                    <label class="form-label">Color Representativo</label>
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        <input type="color" name="color" value="{{ estado.color }}" style="width: 40px; height: 38px; border: 1px solid var(--border-light); border-radius: 6px; cursor: pointer; padding: 0;">
+                                        <input type="text" value="{{ estado.color }}" oninput="this.previousElementSibling.value = this.value" class="form-control" style="font-family: monospace;" placeholder="#34c759">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="form-label">Descripción</label>
+                                <textarea name="descripcion" class="form-control" style="height: 60px;">{{ estado.descripcion }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Configuración de Destinatarios y Canales -->
+                        <div style="background: var(--card-bg); border: 1px solid var(--border-light); padding: 1.25rem; border-radius: 8px; display: flex; flex-direction: column; gap: 0.75rem;">
+                            <h4 style="font-size: 0.9rem; font-weight: 600; margin: 0 0 0.25rem; color: var(--text-main); display: flex; align-items: center; gap: 0.4rem;">
+                                <i data-lucide="sliders" style="width: 16px;"></i> Canales y Destinatarios
+                            </h4>
+                            
+                            <div style="display: flex; gap: 1rem;">
+                                <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.8rem; font-weight: 500;">
+                                    <input type="checkbox" name="activar_email" {% if estado.activar_email %}checked{% endif %} style="width: 16px; height: 16px;">
+                                    Email
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.8rem; font-weight: 500;">
+                                    <input type="checkbox" name="activar_whatsapp" {% if estado.activar_whatsapp %}checked{% endif %} style="width: 16px; height: 16px;">
+                                    WhatsApp
+                                </label>
+                            </div>
+
+                            <div>
+                                <label style="font-size: 0.75rem; font-weight: 500; color: var(--text-dim); display: block; margin-bottom: 0.25rem;">Destinatarios:</label>
+                                <select name="destinatarios" id="destinatarios_{{ estado.id }}" onchange="toggleCamposDestinatarios('{{ estado.id }}')" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                                    {% for choice_val, choice_lbl in destinatarios_choices %}
+                                        <option value="{{ choice_val }}" {% if estado.destinatarios == choice_val %}selected{% endif %}>{{ choice_lbl }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Campo Grupo (Condicional) -->
+                            <div id="div_grupo_{{ estado.id }}" style="display: {% if estado.destinatarios == 'grupo' %}block{% else %}none{% endif %};">
+                                <label style="font-size: 0.75rem; font-weight: 500; color: var(--text-dim); display: block; margin-bottom: 0.25rem;">Grupo de Selectores:</label>
+                                <select name="destinatario_grupo" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                                    <option value="">-- Selecciona un Grupo --</option>
+                                    {% for g in grupos_selectores %}
+                                        <option value="{{ g.id }}" {% if estado.destinatario_grupo_id == g.id %}selected{% endif %}>{{ g.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Campo Selector Específico (Condicional) -->
+                            <div id="div_especifico_{{ estado.id }}" style="display: {% if estado.destinatarios == 'especifico' %}block{% else %}none{% endif %};">
+                                <label style="font-size: 0.75rem; font-weight: 500; color: var(--text-dim); display: block; margin-bottom: 0.25rem;">Selector Específico:</label>
+                                <select name="destinatario_especifico" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                                    <option value="">-- Selecciona un Selector --</option>
+                                    {% for s in selectores %}
+                                        <option value="{{ s.id }}" {% if estado.destinatario_especifico_id == s.id %}selected{% endif %}>{{ s.nombre }} {{ s.apellido }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel de variables dinámicas e inputs de texto -->
+                    <div style="background: rgba(10, 132, 255, 0.03); border: 1px dashed rgba(10, 132, 255, 0.15); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                        <h4 style="font-size: 0.85rem; font-weight: 600; margin: 0 0 0.5rem; color: var(--primary); display: flex; align-items: center; gap: 0.4rem;">
+                            <i data-lucide="info" style="width: 15px;"></i> Variables Dinámicas Disponibles (Hacer clic para insertar)
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+                            <button type="button" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 4px; color: var(--text-main); cursor: pointer;" onclick="insertarEnPlantillaActiva('{{ estado.id }}', '{nombre_selector}')">+{nombre_selector}</button>
+                            <button type="button" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 4px; color: var(--text-main); cursor: pointer;" onclick="insertarEnPlantillaActiva('{{ estado.id }}', '{candidato_nombre}')">+{candidato_nombre}</button>
+                            <button type="button" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 4px; color: var(--text-main); cursor: pointer;" onclick="insertarEnPlantillaActiva('{{ estado.id }}', '{puesto}')">+{puesto}</button>
+                            <button type="button" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 4px; color: var(--text-main); cursor: pointer;" onclick="insertarEnPlantillaActiva('{{ estado.id }}', '{titulo_puesto}')">+{titulo_puesto}</button>
+                            <button type="button" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 4px; color: var(--text-main); cursor: pointer;" onclick="insertarEnPlantillaActiva('{{ estado.id }}', '{empresa_nombre}')">+{empresa_nombre}</button>
+                            <button type="button" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 4px; color: var(--text-main); cursor: pointer;" onclick="insertarEnPlantillaActiva('{{ estado.id }}', '{monto_comision}')">+{monto_comision}</button>
+                            <button type="button" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 4px; color: var(--text-main); cursor: pointer;" onclick="insertarEnPlantillaActiva('{{ estado.id }}', '{monto_devolucion}')">+{monto_devolucion}</button>
+                            <button type="button" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 4px; color: var(--text-main); cursor: pointer;" onclick="insertarEnPlantillaActiva('{{ estado.id }}', '{salario_minimo}')">+{salario_minimo}</button>
+                            <button type="button" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 4px; color: var(--text-main); cursor: pointer;" onclick="insertarEnPlantillaActiva('{{ estado.id }}', '{habilidades_requeridas}')">+{habilidades_requeridas}</button>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <label class="form-label" style="display: flex; align-items: center; gap: 0.3rem;">
+                                <i data-lucide="mail" style="width: 14px;"></i> Plantilla de Correo
+                            </label>
+                            <textarea name="plantilla_email" id="email_{{ estado.id }}" rows="5" class="form-control" style="font-family: inherit; font-size: 0.85rem; line-height: 1.4;" onfocus="this.dataset.focused = 'true'" onblur="setTimeout(() => delete this.dataset.focused, 200)">{{ estado.plantilla_email }}</textarea>
+                        </div>
+                        <div>
+                            <label class="form-label" style="display: flex; align-items: center; gap: 0.3rem;">
+                                <i data-lucide="message-square" style="width: 14px;"></i> Plantilla de WhatsApp
+                            </label>
+                            <textarea name="plantilla_whatsapp" id="whatsapp_{{ estado.id }}" rows="5" class="form-control" style="font-family: inherit; font-size: 0.85rem; line-height: 1.4;" onfocus="this.dataset.focused = 'true'" onblur="setTimeout(() => delete this.dataset.focused, 200)">{{ estado.plantilla_whatsapp }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 1rem;">
+                        <div>
+                            {% if not estado.no_borrable %}
+                            <a href="{% url 'eliminar_estado_comision' estado.id %}" class="btn" style="color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); background: transparent;" onclick="return confirm('¿Estás seguro de que quieres eliminar el estado {{ estado.nombre }}?');">
+                                <i data-lucide="trash-2" style="width: 16px; display: inline-block; vertical-align: middle; margin-right: 0.25rem;"></i> Eliminar Estado
+                            </a>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-dim);"><i data-lucide="lock" style="width: 12px; display: inline-block; vertical-align: middle;"></i> Estado crítico del sistema (no borrable)</span>
+                            {% endif %}
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button type="button" class="btn btn-secondary" onclick="toggleAccordion('content_{{ estado.id }}')">Cerrar</button>
+                            <button type="submit" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.4rem;">
+                                <i data-lucide="save" style="width: 16px;"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card" style="padding: 3rem; text-align: center;">
+            <i data-lucide="sliders" style="width: 48px; height: 48px; opacity: 0.4; color: var(--text-dim); margin-bottom: 1rem;"></i>
+            <h3 style="margin: 0;">No hay estados configurados</h3>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal para Crear Nuevo Estado -->
+<div class="modal-overlay" id="modalNuevoEstado">
+    <div class="modal-content" style="max-width: 550px;">
+        <div class="modal-header">
+            <div class="modal-title">Agregar Nuevo Estado de Comisión</div>
+            <button class="modal-close" onclick="toggleModal('modalNuevoEstado')">
+                <i data-lucide="x" style="width: 20px;"></i>
+            </button>
+        </div>
+        <form method="POST" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">Nombre del Estado *</label>
+                        <input type="text" name="nombre" placeholder="Ej: Comisión Reclamada" required class="form-control">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">Código del Estado (Opcional)</label>
+                        <input type="text" name="codigo" placeholder="Ej: comision_reclamada" class="form-control" style="font-family: monospace;">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Color Identificador</label>
+                        <input type="color" name="color" value="#0d6efd" style="width: 100%; height: 38px; border: 1px solid var(--border-light); border-radius: 6px; cursor: pointer; padding: 0;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Destinatarios por Defecto</label>
+                        <select name="destinatarios" id="modal_destinatarios" onchange="toggleModalDestinatarios()" class="form-control">
+                            {% for choice_val, choice_lbl in destinatarios_choices %}
+                                <option value="{{ choice_val }}">{{ choice_lbl }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Campo Grupo (Condicional en Modal) -->
+                <div id="modal_div_grupo" style="display: none;" class="form-group">
+                    <label class="form-label">Grupo de Selectores:</label>
+                    <select name="destinatario_grupo" class="form-control">
+                        <option value="">-- Selecciona un Grupo --</option>
+                        {% for g in grupos_selectores %}
+                            <option value="{{ g.id }}">{{ g.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Campo Selector Específico (Condicional en Modal) -->
+                <div id="modal_div_especifico" style="display: none;" class="form-group">
+                    <label class="form-label">Selector Específico:</label>
+                    <select name="destinatario_especifico" class="form-control">
+                        <option value="">-- Selecciona un Selector --</option>
+                        {% for s in selectores %}
+                            <option value="{{ s.id }}">{{ s.nombre }} {{ s.apellido }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Descripción</label>
+                    <textarea name="descripcion" placeholder="Explica cuándo se aplica este estado..." class="form-control" style="height: 60px;"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 1.5rem; margin-top: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
+                        <input type="checkbox" name="activar_email" style="width: 16px; height: 16px;">
+                        Activar Alerta de Email
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
+                        <input type="checkbox" name="activar_whatsapp" style="width: 16px; height: 16px;">
+                        Activar Alerta de WhatsApp
+                    </label>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="toggleModal('modalNuevoEstado')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Crear Estado</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleAccordion(contentId) {
+        const content = document.getElementById(contentId);
+        const icon = document.getElementById('icon_' + contentId);
+        if (content.style.display === 'none' || content.style.display === '') {
+            content.style.display = 'block';
+            if (icon) icon.style.transform = 'rotate(180deg)';
+        } else {
+            content.style.display = 'none';
+            if (icon) icon.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function toggleModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal.classList.contains('active')) {
+            modal.classList.remove('active');
+        } else {
+            modal.classList.add('active');
+        }
+    }
+
+    function abrirModalNuevoEstado() {
+        toggleModal('modalNuevoEstado');
+    }
+
+    function toggleCamposDestinatarios(estadoId) {
+        const select = document.getElementById('destinatarios_' + estadoId);
+        const divGrupo = document.getElementById('div_grupo_' + estadoId);
+        const divEspecifico = document.getElementById('div_especifico_' + estadoId);
+        
+        if (select.value === 'grupo') {
+            divGrupo.style.display = 'block';
+            divEspecifico.style.display = 'none';
+        } else if (select.value === 'especifico') {
+            divGrupo.style.display = 'none';
+            divEspecifico.style.display = 'block';
+        } else {
+            divGrupo.style.display = 'none';
+            divEspecifico.style.display = 'none';
+        }
+    }
+
+    function toggleModalDestinatarios() {
+        const select = document.getElementById('modal_destinatarios');
+        const divGrupo = document.getElementById('modal_div_grupo');
+        const divEspecifico = document.getElementById('modal_div_especifico');
+        
+        if (select.value === 'grupo') {
+            divGrupo.style.display = 'block';
+            divEspecifico.style.display = 'none';
+        } else if (select.value === 'especifico') {
+            divGrupo.style.display = 'none';
+            divEspecifico.style.display = 'block';
+        } else {
+            divGrupo.style.display = 'none';
+            divEspecifico.style.display = 'none';
+        }
+    }
+
+    // Función inteligente para insertar variables en la última plantilla enfocada del acordeón
+    function insertarEnPlantillaActiva(estadoId, variable) {
+        const emailTxt = document.getElementById('email_' + estadoId);
+        const whatsappTxt = document.getElementById('whatsapp_' + estadoId);
+        
+        // Priorizar el input enfocado actualmente
+        let targetTxt = null;
+        if (emailTxt && emailTxt.dataset.focused === 'true') {
+            targetTxt = emailTxt;
+        } else if (whatsappTxt && whatsappTxt.dataset.focused === 'true') {
+            targetTxt = whatsappTxt;
+        } else {
+            // Default fallback a WhatsApp si ninguno está enfocado
+            targetTxt = whatsappTxt || emailTxt;
+        }
+        
+        if (!targetTxt) return;
+        
+        const start = targetTxt.selectionStart;
+        const end = targetTxt.selectionEnd;
+        const text = targetTxt.value;
+        const before = text.substring(0, start);
+        const after = text.substring(end, text.length);
+        
+        targetTxt.value = before + variable + after;
+        targetTxt.focus();
+        targetTxt.selectionStart = targetTxt.selectionEnd = start + variable.length;
+    }
+</script>
+{% endblock %}

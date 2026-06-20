@@ -1,0 +1,24 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "webapp (Next.js + Supabase)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "webapp"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "Django legacy (ATS original)",
+      "runtimeExecutable": "venv\\Scripts\\python.exe",
+      "runtimeArgs": ["manage.py", "runserver", "8000"],
+      "port": 8000
+    },
+    {
+      "name": "Pagina ConfiaRH (estatica)",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8923", "--directory", "C:\\Users\\josed\\OneDrive\\Desktop\\Workspace\\Pagina ConfiaRH"],
+      "port": 8923
+    }
+  ]
+}

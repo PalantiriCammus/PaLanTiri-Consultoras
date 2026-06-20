@@ -1,0 +1,1041 @@
+<!-- templates/base_talentos.html -->
+{% extends "base.html" %}
+
+{% block title %}Base de Talentos | Consultora HR{% endblock %}
+
+{% block content %}
+<div class="animate-fade">
+    <!-- Page Header -->
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+        <div>
+            <h1 class="page-title" style="display: flex; align-items: center; gap: 0.6rem;">
+                <i data-lucide="database" style="width: 32px; height: 32px; color: var(--primary);"></i>
+                Base de Talentos
+            </h1>
+            <p class="page-subtitle">Repositorio permanente de candidatos guardados — independiente de las búsquedas activas.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <a href="{% url 'postulantes' %}" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                <i data-lucide="users-round" style="width: 16px; height: 16px;"></i>
+                Ver Postulantes Activos
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 2.5rem;">
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Total en Base</div>
+                <div class="stat-icon blue">
+                    <i data-lucide="database" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ total_pool }}</div>
+            <div class="stat-trend">Talentos registrados</div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Disponibles</div>
+                <div class="stat-icon green">
+                    <i data-lucide="check-circle" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ pool_activos }}</div>
+            <div class="stat-trend"><span class="trend-up">Activos</span> y disponibles</div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">En Proceso</div>
+                <div class="stat-icon orange">
+                    <i data-lucide="loader" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ pool_en_proceso }}</div>
+            <div class="stat-trend">Participando en búsquedas</div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-header">
+                <div class="stat-label">Contratados</div>
+                <div class="stat-icon purple">
+                    <i data-lucide="award" style="width: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ pool_contratados }}</div>
+            <div class="stat-trend">Colocados exitosamente</div>
+        </div>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="section-header" style="flex-direction: column; align-items: stretch; gap: 1rem; border: none; padding-bottom: 0; margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <h2 class="section-title">Listado de Talentos</h2>
+                <button type="button" class="btn btn-secondary" id="toggleFiltersBtn" onclick="toggleAdvancedFilters()" style="padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.25rem;">
+                    <i data-lucide="sliders-horizontal" style="width: 16px; height: 16px;"></i>
+                    Filtros Avanzados
+                </button>
+            </div>
+            
+            <form method="GET" action="{% url 'base_talentos' %}" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                <!-- Fila Principal: Búsqueda rápida -->
+                <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;">
+                    <div class="search-box" style="flex: 1; min-width: 250px; background: rgba(0, 0, 0, 0.04); margin-bottom: 0;">
+                        <i data-lucide="search"></i>
+                        <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nombre, habilidades, título profesional, CV...">
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.9rem; height: 38px;">
+                            Filtrar
+                        </button>
+                        {% if filtros_activos %}
+                            <a href="{% url 'base_talentos' %}" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.9rem; height: 38px; text-decoration: none; display: inline-flex; align-items: center; color: var(--text-dim); border: 1px solid var(--border);">
+                                Limpiar
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Sección Colapsable de Filtros Avanzados -->
+                <div id="advancedFiltersSection" style="display: {% if estado_filtro or categoria_filtro or titulo_filtro or localidad_filtro or fecha_inicio or fecha_fin %}grid{% else %}none{% endif %}; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1rem; background: rgba(0,0,0,0.02); border-radius: var(--radius-md); border: 1px dashed var(--border);">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Desde Fecha</label>
+                        <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; height: 38px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Hasta Fecha</label>
+                        <input type="date" name="fecha_fin" value="{{ fecha_fin }}" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; height: 38px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Título / Profesión</label>
+                        <input type="text" name="titulo" value="{{ titulo_filtro }}" placeholder="Ej: Contador, Developer..." class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; height: 38px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Localidad / Provincia</label>
+                        <input type="text" name="localidad" value="{{ localidad_filtro }}" placeholder="Ej: Rosario, CABA..." class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; height: 38px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Estado</label>
+                        <select name="estado" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; height: 38px;">
+                            <option value="">Todos</option>
+                            {% for est in estados %}
+                                <option value="{{ est.id }}" {% if estado_filtro == est.id|stringformat:"s" %}selected{% endif %}>{{ est.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Categoría</label>
+                        <select name="categoria" class="form-control" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; height: 38px;">
+                            <option value="">Todas</option>
+                            {% for cat in categorias %}
+                                <option value="{{ cat.id }}" {% if categoria_filtro == cat.id|stringformat:'s' %}selected{% endif %}>{{ cat.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Switcher -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem; gap: 1rem; align-items: center;">
+        <div class="segmented-control" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 3px; display: inline-flex; gap: 4px;">
+            <button type="button" id="btn-view-database" onclick="changeTalentViewMode('database')" class="btn" style="padding: 0.45rem 1.1rem; font-size: 0.85rem; border-radius: 6px; border: none; background: var(--primary); color: white; display: flex; align-items: center; gap: 0.35rem; cursor: pointer; transition: all 0.2s;">
+                <i data-lucide="table" style="width: 16px; height: 16px;"></i> Base de Datos (Excel)
+            </button>
+            <button type="button" id="btn-view-kanban" onclick="changeTalentViewMode('kanban')" class="btn" style="padding: 0.45rem 1.1rem; font-size: 0.85rem; border-radius: 6px; border: none; background: transparent; color: var(--text-main); display: flex; align-items: center; gap: 0.35rem; cursor: pointer; transition: all 0.2s;">
+                <i data-lucide="kanban" style="width: 16px; height: 16px;"></i> Tablero Kanban
+            </button>
+            <button type="button" id="btn-view-cards" onclick="changeTalentViewMode('cards')" class="btn" style="padding: 0.45rem 1.1rem; font-size: 0.85rem; border-radius: 6px; border: none; background: transparent; color: var(--text-main); display: flex; align-items: center; gap: 0.35rem; cursor: pointer; transition: all 0.2s;">
+                <i data-lucide="grid" style="width: 16px; height: 16px;"></i> Mosaico
+            </button>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="card" style="padding: 1.5rem 2rem; position: relative;">
+        <div class="section-header" style="border-bottom: 1px solid var(--border-light); padding-bottom: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="section-title" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0;">
+                <i data-lucide="users" style="width: 20px; color: var(--primary);"></i>
+                <span id="talent-count-text">{{ postulantes|length }}</span> talento{% if postulantes|length != 1 %}s{% endif %}
+                {% if filtros_activos %}<span style="font-size: 0.85rem; font-weight: 400; color: var(--text-dim);">encontrado{% if postulantes|length != 1 %}s{% endif %}</span>{% endif %}
+            </h2>
+            <div id="active-column-filters-indicator" style="display: none; font-size: 0.75rem; color: var(--primary); background: rgba(10, 132, 255, 0.08); padding: 0.25rem 0.60rem; border-radius: 6px; border: 1px solid rgba(10, 132, 255, 0.15);">
+                <i data-lucide="filter" style="width: 12px; height: 12px; display: inline; vertical-align: middle; margin-right: 0.2rem;"></i>
+                Filtros de columna activos
+                <button onclick="clearAllColumnFilters()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 600; margin-left: 0.4rem;">Limpiar</button>
+            </div>
+        </div>
+
+        {% if postulantes %}
+        
+        <!-- VIEW 1: DATABASE/EXCEL VIEW -->
+        <div id="section-database-view" style="display: block; margin-top: 1rem;">
+            <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card);">
+                <table id="talents-database-table" style="width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: left;">
+                    <thead>
+                        <tr style="background: var(--bg-main); border-bottom: 2px solid var(--border); color: var(--text-main); font-weight: 600; white-space: nowrap;">
+                            <th style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border); position: relative;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <span>Fecha Carga</span>
+                                    <button class="col-filter-trigger" onclick="openTableFilterMenu(event, 0)" style="background: none; border: none; cursor: pointer; color: var(--text-dim); display: flex; align-items: center; padding: 2px;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                                </div>
+                            </th>
+                            <th style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border); position: relative;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <span>Código de Búsqueda</span>
+                                    <button class="col-filter-trigger" onclick="openTableFilterMenu(event, 1)" style="background: none; border: none; cursor: pointer; color: var(--text-dim); display: flex; align-items: center; padding: 2px;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                                </div>
+                            </th>
+                            <th style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border); position: relative;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <span>Código de Selector</span>
+                                    <button class="col-filter-trigger" onclick="openTableFilterMenu(event, 2)" style="background: none; border: none; cursor: pointer; color: var(--text-dim); display: flex; align-items: center; padding: 2px;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                                </div>
+                            </th>
+                            <th style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border); position: relative;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <span>Nombre y Apellido</span>
+                                    <button class="col-filter-trigger" onclick="openTableFilterMenu(event, 3)" style="background: none; border: none; cursor: pointer; color: var(--text-dim); display: flex; align-items: center; padding: 2px;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                                </div>
+                            </th>
+                            <th style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border); position: relative;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <span>Fecha de entrevista</span>
+                                    <button class="col-filter-trigger" onclick="openTableFilterMenu(event, 4)" style="background: none; border: none; cursor: pointer; color: var(--text-dim); display: flex; align-items: center; padding: 2px;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                                </div>
+                            </th>
+                            <th style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border); position: relative;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <span>Teléfono Celular</span>
+                                    <button class="col-filter-trigger" onclick="openTableFilterMenu(event, 5)" style="background: none; border: none; cursor: pointer; color: var(--text-dim); display: flex; align-items: center; padding: 2px;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                                </div>
+                            </th>
+                            <th style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border); position: relative;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <span>Correo Electrónico</span>
+                                    <button class="col-filter-trigger" onclick="openTableFilterMenu(event, 6)" style="background: none; border: none; cursor: pointer; color: var(--text-dim); display: flex; align-items: center; padding: 2px;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                                </div>
+                            </th>
+                            <th style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border); position: relative;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <span>Lugar de Residencia</span>
+                                    <button class="col-filter-trigger" onclick="openTableFilterMenu(event, 7)" style="background: none; border: none; cursor: pointer; color: var(--text-dim); display: flex; align-items: center; padding: 2px;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                                </div>
+                            </th>
+                            <th style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border); position: relative;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <span>Empresa y Puesto Actual</span>
+                                    <button class="col-filter-trigger" onclick="openTableFilterMenu(event, 8)" style="background: none; border: none; cursor: pointer; color: var(--text-dim); display: flex; align-items: center; padding: 2px;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                                </div>
+                            </th>
+                            <th style="padding: 0.65rem 0.85rem; position: relative;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <span>Estado</span>
+                                    <button class="col-filter-trigger" onclick="openTableFilterMenu(event, 9)" style="background: none; border: none; cursor: pointer; color: var(--text-dim); display: flex; align-items: center; padding: 2px;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="talents-database-tbody">
+                        {% for p in postulantes %}
+                        <tr class="talent-db-row" data-id="{{ p.id }}" style="border-bottom: 1px solid var(--border-light); cursor: pointer;"
+                            ondblclick="abrirEditarModal('{{ p.id }}', '{{ p.nombre|escapejs }}', '{{ p.apellido|escapejs }}', '{{ p.email|escapejs }}', '{{ p.telefono|escapejs }}', '{{ p.fecha_nacimiento|default:''|escapejs }}', '{{ p.genero|escapejs }}', '{{ p.pais|escapejs }}', '{{ p.provincia|escapejs }}', '{{ p.ciudad|escapejs }}', '{{ p.disponibilidad_mudanza|yesno:'true,false' }}', '{{ p.titulo_principal|escapejs }}', '{{ p.resumen_profesional|escapejs }}', '{{ p.experiencia_anos|escapejs }}', '{{ p.titulaciones|escapejs }}', '{{ p.habilidades|escapejs }}', '{{ p.idiomas|escapejs }}', '{{ p.salario_pretendido_minimo|default:''|escapejs }}', '{{ p.salario_pretendido_maximo|default:''|escapejs }}', '{{ p.acepta_remoto|yesno:'true,false' }}', '{{ p.acepta_hibrido|yesno:'true,false' }}', '{{ p.acepta_presencial|yesno:'true,false' }}', '{{ p.linkedin_url|default:''|escapejs }}', '{{ p.portfolio_url|default:''|escapejs }}', '{{ p.github_url|default:''|escapejs }}', '{{ p.estado.id }}', '{{ p.selector.id|default:'' }}', '{{ p.selector_cuit|default:''|escapejs }}', [{% for cat in p.categorias.all %}'{{ cat.id }}',{% endfor %}], '{{ p.guardado_en_pool|yesno:'true,false' }}', true)"
+                            onmouseover="this.style.background='var(--bg-main)';" onmouseout="this.style.background='transparent';">
+                            <td style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border-light); white-space: nowrap;">{{ p.fecha_carga|date:"d/m/Y H:i:s" }}</td>
+                            <td style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border-light); font-weight: 600; color: var(--primary);">
+                                {% for post in p.postulaciones.all %}
+                                    {{ post.perfil_busqueda.codigo_busqueda }}{% if not forloop.last %}, {% endif %}
+                                {% empty %}
+                                    POOL
+                                {% endfor %}
+                            </td>
+                            <td style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border-light);">{% if p.selector %}{{ p.selector.cuit }}{% else %}{{ p.selector_cuit|default:"-" }}{% endif %}</td>
+                            <td style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border-light); font-weight: 600; color: var(--text-main);">{{ p.nombre }} {{ p.apellido }}</td>
+                            <td style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border-light); white-space: nowrap;">
+                                {% for post in p.postulaciones.all %}
+                                    {{ post.fecha_envio|date:"d/m/Y" }}{% if not forloop.last %}, {% endif %}
+                                {% empty %}
+                                    -
+                                {% endfor %}
+                            </td>
+                            <td style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border-light); white-space: nowrap;">{{ p.telefono }}</td>
+                            <td style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border-light);">{{ p.email }}</td>
+                            <td style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border-light);">{{ p.ciudad }}, {{ p.provincia }}</td>
+                            <td style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border-light);">{{ p.titulo_principal }}</td>
+                            <td style="padding: 0.65rem 0.85rem;">
+                                <span class="badge" style="background: {{ p.estado.color }}18; color: {{ p.estado.color }}; border: 1px solid {{ p.estado.color }}33; font-size: 0.72rem; padding: 0.15rem 0.45rem;">
+                                    {{ p.estado.nombre }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- VIEW 2: KANBAN BOARD VIEW -->
+        <div id="section-kanban-view" style="display: none; margin-top: 1rem;">
+            <div class="kanban-board-postulantes" style="display: flex; overflow-x: auto; gap: 1rem; padding-bottom: 1rem; align-items: start;">
+                {% for est in estados %}
+                <div class="kanban-col-post" data-estado-post="{{ est.id }}" style="background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-light); padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; min-height: 250px; min-width: 260px; flex-shrink: 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.6rem; border-bottom: 2px solid {{ est.color }};">
+                        <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 600; color: var(--text-main); font-size: 0.85rem;">
+                            <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ est.color }};"></span>
+                            {{ est.nombre }}
+                        </div>
+                        <span class="badge" style="background: rgba(0,0,0,0.06); color: var(--text-main);" id="pcount-{{ est.id }}">0</span>
+                    </div>
+                    <div class="kanban-post-container" style="display: flex; flex-direction: column; gap: 0.6rem; min-height: 180px;">
+                        {% for p in postulantes %}{% if p.estado.id == est.id %}
+                        <div class="kanban-post-card" id="pkcard-{{ p.id }}" style="background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; transition: transform 0.15s ease, box-shadow 0.15s ease; cursor: pointer;"
+                             ondblclick="abrirEditarModal('{{ p.id }}', '{{ p.nombre|escapejs }}', '{{ p.apellido|escapejs }}', '{{ p.email|escapejs }}', '{{ p.telefono|escapejs }}', '{{ p.fecha_nacimiento|default:''|escapejs }}', '{{ p.genero|escapejs }}', '{{ p.pais|escapejs }}', '{{ p.provincia|escapejs }}', '{{ p.ciudad|escapejs }}', '{{ p.disponibilidad_mudanza|yesno:'true,false' }}', '{{ p.titulo_principal|escapejs }}', '{{ p.resumen_profesional|escapejs }}', '{{ p.experiencia_anos|escapejs }}', '{{ p.titulaciones|escapejs }}', '{{ p.habilidades|escapejs }}', '{{ p.idiomas|escapejs }}', '{{ p.salario_pretendido_minimo|default:''|escapejs }}', '{{ p.salario_pretendido_maximo|default:''|escapejs }}', '{{ p.acepta_remoto|yesno:'true,false' }}', '{{ p.acepta_hibrido|yesno:'true,false' }}', '{{ p.acepta_presencial|yesno:'true,false' }}', '{{ p.linkedin_url|default:''|escapejs }}', '{{ p.portfolio_url|default:''|escapejs }}', '{{ p.github_url|default:''|escapejs }}', '{{ p.estado.id }}', '{{ p.selector.id|default:'' }}', '{{ p.selector_cuit|default:''|escapejs }}', [{% for cat in p.categorias.all %}'{{ cat.id }}',{% endfor %}], '{{ p.guardado_en_pool|yesno:'true,false' }}', true)"
+                             onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)';"
+                             onmouseout="this.style.transform='none';this.style.boxShadow='none';">
+                            <div style="font-weight: 600; font-size: 0.82rem; color: var(--text-main); margin-bottom: 0.2rem;">{{ p.nombre }} {{ p.apellido }}</div>
+                            <div style="font-size: 0.72rem; color: var(--primary); font-weight: 500; margin-bottom: 0.4rem;">{{ p.titulo_principal|truncatechars:28 }}</div>
+                            <div style="font-size: 0.65rem; color: var(--text-dim); display: flex; align-items: center; gap: 0.2rem;">
+                                <i data-lucide="map-pin" style="width: 10px; height: 10px;"></i> {{ p.ciudad }}, {{ p.provincia }}
+                            </div>
+                        </div>
+                        {% endif %}{% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- VIEW 3: MOSAIC CARDS VIEW (PREVIOUS DEFAULT) -->
+        <div id="section-cards-view" style="display: none; margin-top: 1rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1.25rem;">
+                {% for p in postulantes %}
+                <div class="talent-card" style="background: var(--bg-main); border: 1px solid var(--border); border-radius: 14px; padding: 1.4rem; transition: all 0.2s ease; position: relative; overflow: hidden; cursor: pointer;"
+                     title="Doble clic para ver detalle o editar"
+                     ondblclick="abrirEditarModal('{{ p.id }}', '{{ p.nombre|escapejs }}', '{{ p.apellido|escapejs }}', '{{ p.email|escapejs }}', '{{ p.telefono|escapejs }}', '{{ p.fecha_nacimiento|default:''|escapejs }}', '{{ p.genero|escapejs }}', '{{ p.pais|escapejs }}', '{{ p.provincia|escapejs }}', '{{ p.ciudad|escapejs }}', '{{ p.disponibilidad_mudanza|yesno:'true,false' }}', '{{ p.titulo_principal|escapejs }}', '{{ p.resumen_profesional|escapejs }}', '{{ p.experiencia_anos|escapejs }}', '{{ p.titulaciones|escapejs }}', '{{ p.habilidades|escapejs }}', '{{ p.idiomas|escapejs }}', '{{ p.salario_pretendido_minimo|default:''|escapejs }}', '{{ p.salario_pretendido_maximo|default:''|escapejs }}', '{{ p.acepta_remoto|yesno:'true,false' }}', '{{ p.acepta_hibrido|yesno:'true,false' }}', '{{ p.acepta_presencial|yesno:'true,false' }}', '{{ p.linkedin_url|default:''|escapejs }}', '{{ p.portfolio_url|default:''|escapejs }}', '{{ p.github_url|default:''|escapejs }}', '{{ p.estado.id }}', '{{ p.selector.id|default:'' }}', '{{ p.selector_cuit|default:''|escapejs }}', [{% for cat in p.categorias.all %}'{{ cat.id }}',{% endfor %}], '{{ p.guardado_en_pool|yesno:'true,false' }}', true)"
+                     onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-md)';this.style.borderColor='var(--primary)';"
+                     onmouseout="this.style.transform='none';this.style.boxShadow='none';this.style.borderColor='var(--border)';">
+
+                    <!-- Pool badge (top right) -->
+                    <div style="position: absolute; top: 0; right: 0; background: linear-gradient(135deg, var(--primary), #5ac8fa); padding: 0.25rem 0.75rem; border-radius: 0 14px 0 10px; font-size: 0.62rem; font-weight: 700; color: #fff; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.25rem;">
+                        <i data-lucide="database" style="width: 10px; height: 10px;"></i> BASE
+                    </div>
+
+                    <!-- Header: Avatar + Name + Estado -->
+                    <div style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, var(--primary-light), rgba(10,132,255,0.2)); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--primary); font-size: 1.1rem; flex-shrink: 0;">
+                            {{ p.nombre|first|upper }}{{ p.apellido|first|upper }}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 700; font-size: 1rem; color: var(--text-main); margin-bottom: 0.2rem; padding-right: 4rem;">
+                                {{ p.nombre }} {{ p.apellido }}
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--primary); font-weight: 500;">
+                                {{ p.titulo_principal }}
+                            </div>
+                            <div style="margin-top: 0.3rem;">
+                                {% if p.estado %}
+                                    <span class="badge" style="background: {{ p.estado.color }}18; color: {{ p.estado.color }}; border: 1px solid {{ p.estado.color }}33; font-size: 0.65rem;">
+                                        {{ p.estado.nombre }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categorías -->
+                    {% if p.categorias.exists %}
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.85rem;">
+                        {% for cat in p.categorias.all|slice:":4" %}
+                            <span class="badge badge-gray" style="font-size: 0.65rem; border-radius: 4px;">{{ cat.nombre }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Info row: Ubicación / Exp / Carga -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.85rem; font-size: 0.78rem; color: var(--text-dim);">
+                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                            <i data-lucide="map-pin" style="width: 13px; height: 13px; flex-shrink: 0; color: var(--primary);"></i>
+                            <span>{{ p.ciudad }}, {{ p.provincia }}</span>
+                        </div>
+                        {% if p.experiencia_anos %}
+                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                            <i data-lucide="briefcase" style="width: 13px; height: 13px; flex-shrink: 0; color: var(--primary);"></i>
+                            <span>{{ p.experiencia_anos }} año{% if p.experiencia_anos != 1 %}s{% endif %} exp.</span>
+                        </div>
+                        {% endif %}
+                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                            <i data-lucide="calendar" style="width: 13px; height: 13px; flex-shrink: 0; color: var(--primary);"></i>
+                            <span>Carga: {{ p.fecha_carga|date:"d/m/Y" }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Actions footer -->
+                    <div style="display: flex; gap: 0.5rem; border-top: 1px solid var(--border-light); padding-top: 0.75rem; margin-top: 0.5rem;">
+                        {% if p.cv_archivo %}
+                        <a href="{{ p.cv_archivo.url }}" target="_blank" class="btn btn-secondary" style="flex: 1; padding: 0.4rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem; text-decoration: none;">
+                            <i data-lucide="file-text" style="width: 13px; height: 13px;"></i> CV
+                        </a>
+                        {% endif %}
+                        {% if p.linkedin_url %}
+                        <a href="{{ p.linkedin_url }}" target="_blank" class="btn btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem; text-decoration: none; color: #0a66c2; border: 1px solid rgba(10,102,194,0.2); background: rgba(10,102,194,0.06);">
+                            <i data-lucide="linkedin" style="width: 13px; height: 13px;"></i>
+                        </a>
+                        {% endif %}
+                        <form method="POST" action="/postulantes/toggle-pool/{{ p.id }}/" style="flex: 1;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-secondary" style="width: 100%; padding: 0.4rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem; color: var(--danger); border: 1px solid rgba(255,59,48,0.2); background: rgba(255,59,48,0.05);" title="Quitar de la Base de Talentos" onclick="return confirm('¿Quitar a {{ p.nombre }} {{ p.apellido }} de la Base de Talentos?')">
+                                <i data-lucide="database-backup" style="width: 13px; height: 13px;"></i> Quitar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Empty state -->
+        <div style="text-align: center; padding: 5rem 2rem; color: var(--text-dim);">
+            <div style="width: 80px; height: 80px; border-radius: 20px; background: var(--bg-main); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <i data-lucide="database" style="width: 40px; height: 40px; opacity: 0.4; color: var(--primary);"></i>
+            </div>
+            <div style="font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text-main);">
+                {% if filtros_activos %}No se encontraron talentos con esos filtros{% else %}La Base de Talentos está vacía{% endif %}
+            </div>
+            <p style="max-width: 420px; margin: 0 auto 1.5rem; font-size: 0.9rem;">
+                {% if filtros_activos %}
+                    Prueba ajustando los filtros de búsqueda.
+                    <br><a href="{% url 'base_talentos' %}" style="color: var(--primary);">Limpiar filtros</a>
+                {% else %}
+                    Guardá postulantes desde la sección <a href="{% url 'postulantes' %}" style="color: var(--primary);">Postulantes</a> usando el botón <strong>"A Base"</strong>.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Floating Table Filter Menu Container -->
+<div id="table-col-filter-menu" style="display: none; position: absolute; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-lg); z-index: 9999; width: 250px; max-height: 320px; padding: 0.75rem; flex-direction: column; gap: 0.5rem;">
+    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+        <input type="text" id="col-filter-search-input" placeholder="Buscar..." style="width: 100%; font-size: 0.78rem; padding: 0.35rem 0.5rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main);">
+        <div style="display: flex; gap: 0.4rem; justify-content: space-between; font-size: 0.72rem; padding: 0.1rem 0;">
+            <button onclick="toggleAllColFilterCheckboxes(true)" style="background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 600;">Seleccionar Todo</button>
+            <button onclick="toggleAllColFilterCheckboxes(false)" style="background: none; border: none; color: var(--text-dim); cursor: pointer;">Limpiar</button>
+        </div>
+    </div>
+    <div id="col-filter-options-list" style="overflow-y: auto; flex: 1; min-height: 100px; max-height: 180px; display: flex; flex-direction: column; gap: 0.25rem; border-top: 1px solid var(--border-light); padding-top: 0.4rem;">
+        <!-- Checkboxes filled dynamically -->
+    </div>
+    <div style="display: flex; justify-content: flex-end; gap: 0.4rem; border-top: 1px solid var(--border-light); padding-top: 0.4rem; margin-top: auto;">
+        <button onclick="closeTableFilterMenu()" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main); cursor: pointer;">Cancelar</button>
+        <button onclick="applyColumnFilter()" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; border-radius: 6px; border: none; background: var(--primary); color: white; font-weight: 600; cursor: pointer;">Aceptar</button>
+    </div>
+</div>
+
+<!-- Modal Editar Postulante -->
+<div class="modal-overlay" id="modalEditarPostulante">
+    <div class="modal-content" style="max-width: 680px;">
+        <div class="modal-header">
+            <div class="modal-title" id="modalEditarPostulanteTitle">Editar Postulante</div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button type="button" class="btn btn-primary" id="btnToggleEditPostulante" onclick="enableEditMode('formEditarPostulante', 'btnToggleEditPostulante', 'modalEditarPostulanteFooter')" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 8px;">
+                    <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Editar
+                </button>
+                <button type="button" class="modal-close" onclick="toggleModal('modalEditarPostulante')">
+                    <i data-lucide="x" style="width: 20px;"></i>
+                </button>
+            </div>
+        </div>
+        <form method="POST" id="formEditarPostulante" action="" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                
+                <!-- Sección 1: Datos Personales -->
+                <h3 style="font-size: 1rem; margin: 0 0 1rem; color: var(--primary); font-weight: 600;">1. Información Personal</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" name="nombre" id="edit_nombre" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Apellido *</label>
+                        <input type="text" name="apellido" id="edit_apellido" class="form-control" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Email de Contacto *</label>
+                        <input type="email" name="email" id="edit_email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Teléfono *</label>
+                        <input type="text" name="telefono" id="edit_telefono" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Fecha de Nacimiento</label>
+                        <input type="date" name="fecha_nacimiento" id="edit_fecha_nacimiento" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Género</label>
+                        <select name="genero" id="edit_genero" class="form-control">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="masculino">Masculino</option>
+                            <option value="femenino">Femenino</option>
+                            <option value="otro">Otro</option>
+                            <option value="prefiere_no_decir">Prefiere no decir</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Sección 2: Ubicación -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">2. Ubicación</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ciudad *</label>
+                        <input type="text" name="ciudad" id="edit_ciudad" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Provincia *</label>
+                        <input type="text" name="provincia" id="edit_provincia" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">País *</label>
+                        <input type="text" name="pais" id="edit_pais" class="form-control" required>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; padding-top: 1.5rem;">
+                        <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="disponibilidad_mudanza" id="edit_disponibilidad_mudanza" style="width: 18px; height: 18px;">
+                            Disponibilidad para mudarse
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Sección 3: Datos Profesionales -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">3. Datos Profesionales</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Título Principal *</label>
+                        <input type="text" name="titulo_principal" id="edit_titulo_principal" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Años de Experiencia *</label>
+                        <input type="number" name="experiencia_anos" id="edit_experiencia_anos" class="form-control" min="0" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Categorías (Mantener CTRL para selección múltiple)</label>
+                        <select name="categorias" id="edit_categorias" class="form-control" multiple style="height: 100px;">
+                            {% for cat in categorias %}
+                                <option value="{{ cat.id }}">{{ cat.nombre }} ({{ cat.get_area_display }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Resumen Profesional</label>
+                        <textarea name="resumen_profesional" id="edit_resumen_profesional" class="form-control" style="height: 80px;"></textarea>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Titulaciones (separadas por comas)</label>
+                        <input type="text" name="titulaciones" id="edit_titulaciones" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Habilidades Clave (separadas por comas)</label>
+                        <input type="text" name="habilidades" id="edit_habilidades" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Idiomas</label>
+                        <input type="text" name="idiomas" id="edit_idiomas" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Sección 4: Preferencias Laborales -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">4. Preferencias Laborales</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Salario Pretendido Mínimo</label>
+                        <input type="number" step="0.01" name="salario_pretendido_minimo" id="edit_salario_pretendido_minimo" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Salario Pretendido Máximo</label>
+                        <input type="number" step="0.01" name="salario_pretendido_maximo" id="edit_salario_pretendido_maximo" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row" style="gap: 1.5rem; padding: 0.5rem 0;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="acepta_remoto" id="edit_acepta_remoto" style="width: 18px; height: 18px;">
+                        Acepta Remoto
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="acepta_hibrido" id="edit_acepta_hibrido" style="width: 18px; height: 18px;">
+                        Acepta Híbrido
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="acepta_presencial" id="edit_acepta_presencial" style="width: 18px; height: 18px;">
+                        Acepta Presencial
+                    </label>
+                </div>
+
+                <!-- Sección 5: Adjuntos y Enlaces -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">5. Adjuntos y Enlaces</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Reemplazar Archivo de Currículum (PDF)</label>
+                        <input type="file" name="cv_archivo" accept=".pdf" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">LinkedIn URL</label>
+                        <input type="url" name="linkedin_url" id="edit_linkedin_url" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">GitHub URL</label>
+                        <input type="url" name="github_url" id="edit_github_url" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Portfolio URL</label>
+                        <input type="url" name="portfolio_url" id="edit_portfolio_url" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Sección 6: Control y Asignación -->
+                <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem; color: var(--primary); font-weight: 600; border-top: 1px solid var(--border-light); padding-top: 1rem;">6. Control y Asignación</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Selector Asignado (Quién lo cargó)</label>
+                        <select name="selector_id" id="edit_selector_id" class="form-control">
+                            <option value="">-- Seleccionar Selector --</option>
+                            {% for selector in selectores %}
+                                <option value="{{ selector.id }}">{{ selector.nombre_completo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CUIT del Selector</label>
+                        <input type="text" name="selector_cuit" id="edit_selector_cuit" class="form-control" placeholder="Ej: 20-12345678-9">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Estado *</label>
+                        <select name="estado" id="edit_estado" class="form-control">
+                            {% for est in estados %}
+                                <option value="{{ est.id }}">{{ est.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; padding-top: 1.5rem;">
+                        <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="guardado_en_pool" id="edit_guardado_en_pool" style="width: 18px; height: 18px;">
+                            Guardar en Base de Datos de Talentos
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer" id="modalEditarPostulanteFooter">
+                <button type="button" class="btn btn-secondary" onclick="toggleModal('modalEditarPostulante')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    function toggleModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal.classList.contains('active')) {
+            modal.classList.remove('active');
+        } else {
+            modal.classList.add('active');
+        }
+    }
+
+    function setFormReadOnly(formId, isReadOnly) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+        const elements = form.querySelectorAll('input, select, textarea');
+        elements.forEach(el => {
+            if (el.name === 'csrfmiddlewaretoken') return;
+            if (isReadOnly) {
+                el.setAttribute('disabled', 'true');
+            } else {
+                el.removeAttribute('disabled');
+            }
+        });
+    }
+
+    function enableEditMode(formId, btnId, footerId) {
+        setFormReadOnly(formId, false);
+        document.getElementById(btnId).style.display = 'none';
+        document.getElementById(footerId).style.display = 'flex';
+    }
+
+    function abrirEditarModal(
+        id, nombre, apellido, email, telefono, fechaNacimiento, genero, pais, provincia, ciudad,
+        disponibilidadMudanza, tituloPrincipal, resumenProfesional, experienciaAnos, titulaciones,
+        habilidades, idiomas, salarioMin, salarioMax, aceptaRemoto, aceptaHibrido, aceptaPresencial,
+        linkedinUrl, portfolioUrl, githubUrl, estado, selectorId, selectorCuit, categoriasIds, guardadoEnPool,
+        readOnlyMode = false
+    ) {
+        // Set action URL dynamically
+        const form = document.getElementById('formEditarPostulante');
+        form.action = `/postulantes/editar/${id}/`;
+        
+        // Populate fields
+        document.getElementById('edit_nombre').value = nombre;
+        document.getElementById('edit_apellido').value = apellido;
+        document.getElementById('edit_email').value = email;
+        document.getElementById('edit_telefono').value = telefono;
+        document.getElementById('edit_fecha_nacimiento').value = fechaNacimiento;
+        document.getElementById('edit_genero').value = genero;
+        document.getElementById('edit_pais').value = pais;
+        document.getElementById('edit_provincia').value = provincia;
+        document.getElementById('edit_ciudad').value = ciudad;
+        document.getElementById('edit_disponibilidad_mudanza').checked = disponibilidadMudanza === 'true';
+        
+        document.getElementById('edit_titulo_principal').value = tituloPrincipal;
+        document.getElementById('edit_resumen_profesional').value = resumenProfesional;
+        document.getElementById('edit_experiencia_anos').value = experienciaAnos;
+        document.getElementById('edit_titulaciones').value = titulaciones;
+        document.getElementById('edit_habilidades').value = habilidades;
+        document.getElementById('edit_idiomas').value = idiomas;
+        
+        document.getElementById('edit_salario_pretendido_minimo').value = salarioMin;
+        document.getElementById('edit_salario_pretendido_maximo').value = salarioMax;
+        
+        document.getElementById('edit_acepta_remoto').checked = aceptaRemoto === 'true';
+        document.getElementById('edit_acepta_hibrido').checked = aceptaHibrido === 'true';
+        document.getElementById('edit_acepta_presencial').checked = aceptaPresencial === 'true';
+        
+        document.getElementById('edit_linkedin_url').value = linkedinUrl;
+        document.getElementById('edit_portfolio_url').value = portfolioUrl;
+        document.getElementById('edit_github_url').value = githubUrl;
+        
+        document.getElementById('edit_estado').value = estado;
+        document.getElementById('edit_selector_id').value = selectorId;
+        document.getElementById('edit_selector_cuit').value = selectorCuit;
+        document.getElementById('edit_guardado_en_pool').checked = guardadoEnPool === 'true';
+        
+        // Populate multiple select for categories
+        const selectCats = document.getElementById('edit_categorias');
+        for (let i = 0; i < selectCats.options.length; i++) {
+            const opt = selectCats.options[i];
+            opt.selected = categoriasIds.includes(opt.value);
+        }
+
+        // Configure read-only view or edit mode
+        const titleEl = document.getElementById('modalEditarPostulanteTitle');
+        const toggleBtn = document.getElementById('btnToggleEditPostulante');
+        const footer = document.getElementById('modalEditarPostulanteFooter');
+
+        if (readOnlyMode) {
+            titleEl.textContent = "Detalle del Postulante";
+            setFormReadOnly('formEditarPostulante', true);
+            toggleBtn.style.display = 'inline-flex';
+            footer.style.display = 'none';
+        } else {
+            titleEl.textContent = "Editar Postulante";
+            setFormReadOnly('formEditarPostulante', false);
+            toggleBtn.style.display = 'none';
+            footer.style.display = 'flex';
+        }
+        
+        // Open modal
+    }
+
+    function toggleAdvancedFilters() {
+        const section = document.getElementById('advancedFiltersSection');
+        if (section.style.display === 'none') {
+            section.style.display = 'grid';
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
+    // --- BASE DE TALENTOS VIEW SWITCHER & KANBAN LOGIC ---
+    function changeTalentViewMode(mode) {
+        const dbView = document.getElementById('section-database-view');
+        const kanbanView = document.getElementById('section-kanban-view');
+        const cardsView = document.getElementById('section-cards-view');
+
+        const btnDb = document.getElementById('btn-view-database');
+        const btnKanban = document.getElementById('btn-view-kanban');
+        const btnCards = document.getElementById('btn-view-cards');
+
+        if (!dbView || !kanbanView || !cardsView || !btnDb || !btnKanban || !btnCards) return;
+
+        // Hide all
+        dbView.style.display = 'none';
+        kanbanView.style.display = 'none';
+        cardsView.style.display = 'none';
+
+        // Reset button states
+        const btns = [btnDb, btnKanban, btnCards];
+        btns.forEach(btn => {
+            btn.style.background = 'transparent';
+            btn.style.color = 'var(--text-main)';
+        });
+
+        // Show active and highlight button
+        if (mode === 'database') {
+            dbView.style.display = 'block';
+            btnDb.style.background = 'var(--primary)';
+            btnDb.style.color = 'white';
+        } else if (mode === 'kanban') {
+            kanbanView.style.display = 'block';
+            btnKanban.style.background = 'var(--primary)';
+            btnKanban.style.color = 'white';
+            updateKanbanCounts();
+        } else if (mode === 'cards') {
+            cardsView.style.display = 'block';
+            btnCards.style.background = 'var(--primary)';
+            btnCards.style.color = 'white';
+        }
+
+        localStorage.setItem('base_talentos_view_mode', mode);
+    }
+
+    function updateKanbanCounts() {
+        document.querySelectorAll('.kanban-col-post').forEach(col => {
+            const countBadge = col.querySelector('.badge');
+            const cards = col.querySelectorAll('.kanban-post-card');
+            if (countBadge && cards) {
+                countBadge.textContent = cards.length;
+            }
+        });
+    }
+
+    // --- INTERACTIVE COLUMN-SPECIFIC EXCEL FILTERING LOGIC ---
+    let activeFilters = {}; // Maps colIndex -> Set of allowed string values
+    let currentFilteringColIndex = null;
+
+    function openTableFilterMenu(event, colIndex) {
+        event.stopPropagation();
+        currentFilteringColIndex = colIndex;
+
+        const triggerBtn = event.currentTarget;
+        const menu = document.getElementById('table-col-filter-menu');
+        const listContainer = document.getElementById('col-filter-options-list');
+        const searchInput = document.getElementById('col-filter-search-input');
+
+        if (!menu || !listContainer || !searchInput) return;
+
+        // Clear search input
+        searchInput.value = '';
+
+        // Gather all unique values for this column from currently rendered rows
+        const rows = document.querySelectorAll('#talents-database-tbody tr.talent-db-row');
+        const valuesSet = new Set();
+        rows.forEach(row => {
+            const cells = row.getElementsByTagName('td');
+            if (cells[colIndex]) {
+                const val = cells[colIndex].textContent.trim();
+                if (val) valuesSet.add(val);
+            }
+        });
+
+        const sortedValues = Array.from(valuesSet).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+
+        // Build checklist elements
+        listContainer.innerHTML = '';
+        const allowedVals = activeFilters[colIndex];
+
+        sortedValues.forEach((val, idx) => {
+            const label = document.createElement('label');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.gap = '0.4rem';
+            label.style.fontSize = '0.78rem';
+            label.style.cursor = 'pointer';
+            label.style.padding = '0.15rem 0.25rem';
+            label.className = 'col-filter-item-label';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = val;
+            // Check if it's currently allowed (default to true if no filters yet)
+            checkbox.checked = !allowedVals || allowedVals.has(val);
+            checkbox.style.width = '14px';
+            checkbox.style.height = '14px';
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = val;
+
+            label.appendChild(checkbox);
+            label.appendChild(textSpan);
+            listContainer.appendChild(label);
+        });
+
+        // Set up search filter listener
+        searchInput.oninput = function() {
+            const query = this.value.toLowerCase();
+            const items = listContainer.querySelectorAll('.col-filter-item-label');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        };
+
+        // Position the menu
+        const rect = triggerBtn.getBoundingClientRect();
+        menu.style.display = 'flex';
+        menu.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+        
+        // Prevent menu from overflowing screen horizontally
+        const menuWidth = 250;
+        let leftPos = rect.left + window.scrollX;
+        if (leftPos + menuWidth > window.innerWidth) {
+            leftPos = window.innerWidth - menuWidth - 15;
+        }
+        menu.style.left = leftPos + 'px';
+
+        // Close on click outside
+        const closeMenuHandler = function(e) {
+            if (!menu.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
+                closeTableFilterMenu();
+                document.removeEventListener('click', closeMenuHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeMenuHandler), 50);
+    }
+
+    function closeTableFilterMenu() {
+        const menu = document.getElementById('table-col-filter-menu');
+        if (menu) menu.style.display = 'none';
+        currentFilteringColIndex = null;
+    }
+
+    function toggleAllColFilterCheckboxes(state) {
+        const listContainer = document.getElementById('col-filter-options-list');
+        if (!listContainer) return;
+        const checkboxes = listContainer.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            if (cb.parentElement.style.display !== 'none') {
+                cb.checked = state;
+            }
+        });
+    }
+
+    function applyColumnFilter() {
+        if (currentFilteringColIndex === null) return;
+        
+        const listContainer = document.getElementById('col-filter-options-list');
+        if (!listContainer) return;
+
+        const checkboxes = listContainer.querySelectorAll('input[type="checkbox"]');
+        const checkedValues = new Set();
+        checkboxes.forEach(cb => {
+            if (cb.checked) checkedValues.add(cb.value);
+        });
+
+        // Save checked values to activeFilters
+        activeFilters[currentFilteringColIndex] = checkedValues;
+
+        // Apply filters to all rows
+        applyAllFilters();
+        closeTableFilterMenu();
+    }
+
+    function applyAllFilters() {
+        const rows = document.querySelectorAll('#talents-database-tbody tr.talent-db-row');
+        let visibleCount = 0;
+        let filtersApplied = false;
+
+        rows.forEach(row => {
+            const cells = row.getElementsByTagName('td');
+            let matchesAll = true;
+
+            // Check against each active filter
+            for (const colIndex in activeFilters) {
+                const allowedSet = activeFilters[colIndex];
+                if (!allowedSet) continue;
+
+                filtersApplied = true;
+                const cellText = cells[colIndex] ? cells[colIndex].textContent.trim() : '';
+                if (!allowedSet.has(cellText)) {
+                    matchesAll = false;
+                    break;
+                }
+            }
+
+            if (matchesAll) {
+                row.style.display = '';
+                visibleCount++;
+                // Also update corresponding cards and kanban cards
+                const id = row.getAttribute('data-id');
+                const kcard = document.getElementById('pkcard-' + id);
+                if (kcard) kcard.style.display = '';
+            } else {
+                row.style.display = 'none';
+                const id = row.getAttribute('data-id');
+                const kcard = document.getElementById('pkcard-' + id);
+                if (kcard) kcard.style.display = 'none';
+            }
+        });
+
+        // Update indicators & headers
+        const indicator = document.getElementById('active-column-filters-indicator');
+        if (indicator) {
+            indicator.style.display = filtersApplied ? 'inline-flex' : 'none';
+        }
+
+        // Highlight filtered headers
+        const headers = document.querySelectorAll('#talents-database-table th');
+        headers.forEach((th, idx) => {
+            const trigger = th.querySelector('.col-filter-trigger');
+            if (trigger) {
+                if (activeFilters[idx]) {
+                    trigger.style.color = 'var(--primary)';
+                    th.style.background = 'rgba(10, 132, 255, 0.05)';
+                } else {
+                    trigger.style.color = 'var(--text-dim)';
+                    th.style.background = '';
+                }
+            }
+        });
+
+        // Update count header
+        const countText = document.getElementById('talent-count-text');
+        if (countText) {
+            countText.textContent = visibleCount;
+        }
+
+        updateKanbanCounts();
+    }
+
+    function clearAllColumnFilters() {
+        activeFilters = {};
+        applyAllFilters();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.lucide) window.lucide.createIcons();
+
+        // Load view mode from storage
+        const savedViewMode = localStorage.getItem('base_talentos_view_mode') || 'database';
+        changeTalentViewMode(savedViewMode);
+    });
+</script>
+{% endblock %}

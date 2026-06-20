@@ -1,0 +1,51 @@
+{
+  "proyecto": "Plataforma ATS y Gestión de Consultora HR",
+  "descripcion": "Sistema integral de gestión de talento y reclutamiento diseñado para agilizar el ciclo de selección, con enfoque en la gestión de selectores freelance, asignación de búsquedas, comisiones automáticas y seguimiento de garantías de reemplazo.",
+  "arquitectura": {
+    "backend": "Django 4.2.x (API REST y Panel de Administración)",
+    "frontend_nuevo": "Next.js 15+ con App Router (en carpeta /webapp)",
+    "base_datos": "SQLite (Entorno de Desarrollo), PostgreSQL proyectado para Producción",
+    "automatizacion": "Selenium (Script worker para enviar mensajes de WhatsApp vía Web sin API oficial)",
+    "integraciones": "Google Workspace API (OAuth, Docs para Job Descriptions, Calendar/Meet para Entrevistas, Forms para recolección de CVs)"
+  },
+  "estado_actual": {
+    "fase": "Migración/Desarrollo Activo",
+    "descripcion_fase": "El sistema posee un backend robusto en Django que maneja toda la lógica de negocio (ATS, finanzas, automatizaciones). Simultáneamente, se está desarrollando una nueva interfaz/portal utilizando Next.js en el directorio /webapp.",
+    "apps_django": [
+      "empresas (Gestión de clientes y Perfiles de Búsqueda/Job Descriptions)",
+      "selectores (Gestión de recruiters freelance, grupos y perfiles financieros)",
+      "postulantes (Base de talentos, parseo de CVs, habilidades, disponibilidad)",
+      "postulaciones (Ciclo de vida del candidato: desde envío hasta contratación, Kanban, y garantías)",
+      "comisiones (Cálculo atómico de honorarios por contratación para empresa, consultora y selector)",
+      "integraciones_google (OAuth y sincronización con Calendar/Forms)"
+    ],
+    "funcionalidades_clave": [
+      "Tablero Kanban para el seguimiento de postulaciones (Estados: Nueva, Entrevista, Oferta, Contratado, etc.).",
+      "Cálculo automático de comisiones al mover un candidato al estado 'Contratado' basándose en porcentajes históricos.",
+      "Lector automático de archivos PDF (CVs) para extraer el texto y resumir perfiles.",
+      "Portal público (marca blanca) para Selectores: URLs personalizadas para captar candidatos que se asignan automáticamente a su autor.",
+      "Worker en segundo plano ('whatsapp_worker.py') que lee la cola de la base de datos y envía WhatsApps automáticos al cambiar de estado en el Kanban.",
+      "Gestión estricta de Garantías de Reemplazo (ej. 90 días). Si un candidato renuncia o es despedido, se activa un protocolo de reemplazo sin comisión."
+    ]
+  },
+  "entidades_principales_modelos": {
+    "Empresa": "Cliente final que solicita candidatos. Contiene datos de contacto y porcentajes de comisión base.",
+    "PerfilBusqueda": "La 'Job Description'. Requiere habilidades, tiene un nivel (Junior/Senior), salario estipulado y se le asignan Selectores.",
+    "Selector": "Recruiter freelance. Tiene una cuenta corriente, porcentaje de ganancia sobre las búsquedas y un CUIT.",
+    "Postulante": "Candidato. Contiene CV (PDF y texto), habilidades, expectativas salariales y notas. Puede estar en una 'Base de Talentos' general.",
+    "Postulacion": "Tabla pivot entre Postulante y PerfilBusqueda. Traquea el flujo (estado) del candidato en la búsqueda específica y el Selector que lo presentó. Maneja las entrevistas agendadas.",
+    "Comision": "Se genera atómicamente al contratar. Divide el pago total en fracciones: Empresa (Fee total), Consultora (Ganancia) y Selector (Pago al freelancer).",
+    "SeguimientoGarantia": "Vinculado a una postulación contratada. Cuenta regresiva de días (ej. 90) para asegurar la permanencia del candidato."
+  },
+  "flujos_de_trabajo_importantes": {
+    "flujo_ingreso_candidato": "1. Selector comparte su link público. 2. Candidato llena form y sube CV PDF. 3. Sistema parsea PDF, crea Postulante y Postulacion en estado 'Nueva' asignada a ese Selector.",
+    "flujo_kanban_automatizaciones": "Al arrastrar un candidato en el Kanban a otro estado, el sistema cambia la fecha_cambio_estado y encola mensajes de Email/WhatsApp definidos en el modelo 'EstadoPostulante'.",
+    "flujo_whatsapp_worker": "El archivo whatsapp_worker.py debe ejecutarse en una terminal separada. Abre Chrome por Selenium, el usuario escanea QR, y luego el bot drena la tabla WhatsAppMessage enviando mensajes uno a uno.",
+    "flujo_comisiones_y_garantia": "1. Candidato pasa a 'Contratado'. 2. Se genera Comision (congeltando porcentajes actuales). 3. Se inicia 'SeguimientoGarantia'. Si el candidato no supera la garantía, el estado cambia a 'Incumplida' y se genera una nueva búsqueda de reemplazo a costo cero."
+  },
+  "hoja_de_ruta_y_desarrollo": {
+    "frontend_nextjs": "Terminar la integración de la UI en Next.js (/webapp) conectando vía API REST con el backend Django.",
+    "inteligencia_artificial": "Implementar matching avanzado de CVs vs PerfilBusqueda usando embeddings o IA generativa para el resumen de candidatos.",
+    "escalabilidad": "Migrar a PostgreSQL, reemplazar SQLite. Evaluar reemplazar Selenium por API oficial de WhatsApp o servicios como Twilio/Evolution API."
+  }
+}

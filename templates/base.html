@@ -1,0 +1,147 @@
+<!-- templates/base.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Consultora HR | Dashboard{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=2.5">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
+                </div>
+                Consultora HR
+            </div>
+
+            <nav class="menu" style="margin-top: 1rem;">
+                <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+                    <i data-lucide="layout-grid"></i>
+                    Dashboard
+                </a>
+                <a href="/empresas/" class="nav-item {% if '/empresas/' in request.path %}active{% endif %}">
+                    <i data-lucide="building-2"></i>
+                    Empresas
+                </a>
+                <a href="/busquedas/" class="nav-item {% if '/busquedas/' in request.path %}active{% endif %}">
+                    <i data-lucide="briefcase"></i>
+                    Búsquedas
+                </a>
+                <a href="/selectores/" class="nav-item {% if '/selectores/' in request.path %}active{% endif %}">
+                    <i data-lucide="users"></i>
+                    Selectores
+                </a>
+                <a href="/postulantes/" class="nav-item {% if '/postulantes/' in request.path %}active{% endif %}">
+                    <i data-lucide="users-round"></i>
+                    Postulantes
+                </a>
+                <a href="/base-talentos/" class="nav-item {% if '/base-talentos/' in request.path %}active{% endif %}">
+                    <i data-lucide="database"></i>
+                    Base de Talentos
+                </a>
+                <a href="/comisiones/" class="nav-item {% if request.path == '/comisiones/' %}active{% endif %}">
+                    <i data-lucide="wallet"></i>
+                    Comisiones
+                </a>
+                <a href="/comisiones/estados/" class="nav-item {% if '/comisiones/estados/' in request.path %}active{% endif %}">
+                    <i data-lucide="sliders"></i>
+                    Estados de Comisiones
+                </a>
+                <a href="/integraciones/" class="nav-item {% if request.path == '/integraciones/' %}active{% endif %}">
+                    <i data-lucide="settings-2"></i>
+                    Ajustes
+                </a>
+                <a href="/integraciones/alertas/" class="nav-item {% if '/integraciones/alertas/' in request.path %}active{% endif %}">
+                    <i data-lucide="bell"></i>
+                    Alertas
+                </a>
+            </nav>
+
+            <div style="margin-top: auto;">
+                <a href="/logout/" class="nav-item" style="color: var(--text-dim);">
+                    <i data-lucide="log-out"></i>
+                    Cerrar Sesión
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <header class="top-bar glass">
+                <button class="hamburger-btn" id="sidebar-toggle" aria-label="Abrir menú">
+                    <i data-lucide="menu"></i>
+                </button>
+
+                <div class="search-box">
+                    <i data-lucide="search"></i>
+                    <input type="text" placeholder="Buscar postulantes, búsquedas...">
+                </div>
+
+                <div class="user-profile">
+                    <div class="user-info">
+                        <div class="user-name">{{ user.username|default:"Admin" }}</div>
+                        <div class="user-role">Administrador</div>
+                    </div>
+                    <div class="avatar">
+                        {{ user.username|default:"A"|first|upper }}
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-body">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Sidebar Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Mobile Sidebar Control
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.querySelector('aside.sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        if (sidebarToggle && sidebar && sidebarOverlay) {
+            function toggleSidebar() {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('active');
+            }
+
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            sidebarOverlay.addEventListener('click', toggleSidebar);
+
+            // Close sidebar when clicking on a nav link in mobile view
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    if (sidebar.classList.contains('open')) {
+                        toggleSidebar();
+                    }
+                });
+            });
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

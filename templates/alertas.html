@@ -1,0 +1,492 @@
+<!-- templates/alertas.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="animate-fade">
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h1 class="page-title">Configuración de Alertas</h1>
+            <p class="page-subtitle">Personaliza los mensajes y canales de notificación automáticos de la plataforma.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button onclick="abrirModalNuevaAlerta()" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; background-color: var(--success); border-color: var(--success);">
+                <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
+                Nueva Alerta
+            </button>
+            <a href="{% url 'integraciones' %}" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
+                Volver a Ajustes
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" action="{% url 'gestionar_alertas' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update">
+        
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            {% for alerta in alertas %}
+            <div class="card" style="padding: 1.75rem; border-left: 4px solid var(--primary);">
+                <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 1px solid var(--border-light); padding-bottom: 1rem; margin-bottom: 1.25rem;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.25rem;">
+                            <input type="text" name="nombre_{{ alerta.id }}" value="{{ alerta.nombre }}" required class="form-control" style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); border: 1px solid var(--border-light); background: var(--card-bg, #fff); padding: 0.35rem 0.6rem; border-radius: 6px; width: 300px; display: inline-block;">
+                            <input type="text" name="evento_codigo_{{ alerta.id }}" value="{{ alerta.evento_codigo }}" required class="form-control" style="font-family: monospace; font-size: 0.8rem; border: 1px solid var(--border-light); background: var(--bg-main); padding: 0.35rem 0.6rem; border-radius: 6px; color: var(--text-dim); width: 220px; display: inline-block;">
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-dim); margin: 0.25rem 0 0;">Configura quién recibe la alerta y los textos personalizados de envío.</p>
+                    </div>
+                    {% if alerta.evento_codigo != 'nueva_busqueda' %}
+                    <a href="{% url 'eliminar_alerta' alerta.id %}" class="btn" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); background: transparent;" onclick="return confirm('¿Estás seguro de que quieres eliminar esta configuración de alerta?');">
+                        <i data-lucide="trash-2" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 0.25rem;"></i> Eliminar
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <!-- Configuración General y WhatsApp -->
+                    <div>
+                        <h3 style="font-size: 0.95rem; font-weight: 500; margin-bottom: 1rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+                            <i data-lucide="sliders" style="width: 16px;"></i> Ajustes de Canales y Destinatarios
+                        </h3>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
+                            <label style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-main); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light); cursor: pointer;">
+                                <span style="font-size: 0.85rem; color: var(--text-main); font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i data-lucide="mail" style="color: var(--primary); width: 16px;"></i> Activar Alertas por Mail
+                                </span>
+                                <input type="checkbox" name="activar_email_{{ alerta.id }}" {% if alerta.activar_email %}checked{% endif %} style="width: 18px; height: 18px;">
+                            </label>
+                            
+                            <label style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-main); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light); cursor: pointer;">
+                                <span style="font-size: 0.85rem; color: var(--text-main); font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i data-lucide="message-square" style="color: #25D366; width: 16px;"></i> Activar Alertas por WhatsApp
+                                </span>
+                                <input type="checkbox" name="activar_whatsapp_{{ alerta.id }}" {% if alerta.activar_whatsapp %}checked{% endif %} style="width: 18px; height: 18px;">
+                            </label>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem;">
+                            <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-dim);">¿Quiénes reciben esta notificación?</label>
+                            <select name="destinatarios_{{ alerta.id }}" id="select_destinatarios_{{ alerta.id }}" onchange="toggleDestinatarioCampos({{ alerta.id }})" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem;">
+                                <option value="asignados" {% if alerta.destinatarios == 'asignados' %}selected{% endif %}>Solo selectores asignados a la búsqueda</option>
+                                <option value="activos" {% if alerta.destinatarios == 'activos' %}selected{% endif %}>Todos los selectores activos</option>
+                                <option value="ambos" {% if alerta.destinatarios == 'ambos' %}selected{% endif %}>Ambos (Asignados y Activos)</option>
+                                <option value="cierre" {% if alerta.destinatarios == 'cierre' %}selected{% endif %}>Solo el selector de Cierre (comisión)</option>
+                                <option value="sourcing" {% if alerta.destinatarios == 'sourcing' %}selected{% endif %}>Solo el selector de Sourcing (comisión)</option>
+                                <option value="ambos_comision" {% if alerta.destinatarios == 'ambos_comision' %}selected{% endif %}>Ambos de la comisión (Sourcing y Cierre)</option>
+                                <option value="grupo" {% if alerta.destinatarios == 'grupo' %}selected{% endif %}>Un grupo específico de selectores</option>
+                                <option value="especifico" {% if alerta.destinatarios == 'especifico' %}selected{% endif %}>Un selector individual específico</option>
+                            </select>
+                        </div>
+
+                        <!-- Campo Grupo (Condicional) -->
+                        <div id="campo_grupo_{{ alerta.id }}" style="display: {% if alerta.destinatarios == 'grupo' %}block{% else %}none{% endif %}; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem;">
+                            <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-dim);">Selecciona el Grupo:</label>
+                            <select name="destinatario_grupo_{{ alerta.id }}" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem;">
+                                <option value="">-- Elige un Grupo --</option>
+                                {% for g in grupos %}
+                                    <option value="{{ g.id }}" {% if alerta.destinatario_grupo_id == g.id %}selected{% endif %}>{{ g.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Campo Selector Específico (Condicional) -->
+                        <div id="campo_especifico_{{ alerta.id }}" style="display: {% if alerta.destinatarios == 'especifico' %}block{% else %}none{% endif %}; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem;">
+                            <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-dim);">Selecciona el Selector:</label>
+                            <select name="destinatario_especifico_{{ alerta.id }}" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem;">
+                                <option value="">-- Elige un Selector --</option>
+                                {% for s in selectores %}
+                                    <option value="{{ s.id }}" {% if alerta.destinatario_especifico_id == s.id %}selected{% endif %}>{{ s.nombre }} {{ s.apellido }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+
+                    <!-- Ayuda de Variables -->
+                    <div style="background: rgba(10, 132, 255, 0.03); border: 1px dashed rgba(10, 132, 255, 0.15); border-radius: 10px; padding: 1rem;">
+                        <h3 style="font-size: 0.85rem; font-weight: 600; margin-top: 0; margin-bottom: 0.5rem; color: var(--primary); display: flex; align-items: center; gap: 0.4rem;">
+                            <i data-lucide="info" style="width: 16px;"></i> Variables Dinámicas Disponibles
+                        </h3>
+                        <p style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.75rem; line-height: 1.4;">
+                            Puedes insertar estas variables con corchetes en cualquier parte del cuerpo. El sistema las reemplazará automáticamente con la información real:
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.75rem; font-family: monospace;">
+                            <div><strong style="color: var(--text-main);">{nombre_selector}</strong><br><span style="color: var(--text-dim);">Nombre del selector</span></div>
+                            <div><strong style="color: var(--text-main);">{titulo_puesto}</strong><br><span style="color: var(--text-dim);">Puesto (búsqueda)</span></div>
+                            <div><strong style="color: var(--text-main);">{empresa_nombre}</strong><br><span style="color: var(--text-dim);">Nombre del cliente</span></div>
+                            <div><strong style="color: var(--text-main);">{salario_minimo}</strong><br><span style="color: var(--text-dim);">Salario referencial</span></div>
+                            <div><strong style="color: var(--text-main);">{habilidades_requeridas}</strong><br><span style="color: var(--text-dim);">Tags de skills</span></div>
+                            <div><strong style="color: var(--text-main);">{monto_comision}</strong><br><span style="color: var(--text-dim);">Comisión pagada</span></div>
+                            <div><strong style="color: var(--text-main);">{monto_devolucion}</strong><br><span style="color: var(--text-dim);">Clawback devuelto</span></div>
+                            <div><strong style="color: var(--text-main);">{candidato_nombre}</strong><br><span style="color: var(--text-dim);">Nombre del candidato</span></div>
+                            <div><strong style="color: var(--text-main);">{puesto}</strong><br><span style="color: var(--text-dim);">Nombre del puesto</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 1.25rem;">
+                    <!-- Plantilla Email -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+                                <i data-lucide="mail" style="width: 15px;"></i> Cuerpo del Correo Electrónico
+                            </label>
+                            <span style="font-size: 0.7rem; color: var(--text-dim);">Insertar variable haciendo clic:</span>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.5rem; padding: 0.35rem; background: var(--bg-main); border-radius: 6px; border: 1px solid var(--border-light);">
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_email_{{ alerta.id }}', '{nombre_selector}')">+{nombre_selector}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_email_{{ alerta.id }}', '{titulo_puesto}')">+{titulo_puesto}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_email_{{ alerta.id }}', '{empresa_nombre}')">+{empresa_nombre}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_email_{{ alerta.id }}', '{salario_minimo}')">+{salario_minimo}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_email_{{ alerta.id }}', '{habilidades_requeridas}')">+{habilidades_requeridas}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_email_{{ alerta.id }}', '{monto_comision}')">+{monto_comision}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_email_{{ alerta.id }}', '{monto_devolucion}')">+{monto_devolucion}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_email_{{ alerta.id }}', '{candidato_nombre}')">+{candidato_nombre}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_email_{{ alerta.id }}', '{puesto}')">+{puesto}</button>
+                        </div>
+                        <textarea name="plantilla_email_{{ alerta.id }}" id="plantilla_email_{{ alerta.id }}" rows="6" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-family: inherit; font-size: 0.85rem; line-height: 1.5; resize: vertical;">{{ alerta.plantilla_email }}</textarea>
+                    </div>
+
+                    <!-- Plantilla WhatsApp -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+                                <i data-lucide="message-square" style="width: 15px;"></i> Mensaje de WhatsApp
+                            </label>
+                            <span style="font-size: 0.7rem; color: var(--text-dim);">Insertar variable haciendo clic:</span>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.5rem; padding: 0.35rem; background: var(--bg-main); border-radius: 6px; border: 1px solid var(--border-light);">
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_whatsapp_{{ alerta.id }}', '{nombre_selector}')">+{nombre_selector}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_whatsapp_{{ alerta.id }}', '{titulo_puesto}')">+{titulo_puesto}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_whatsapp_{{ alerta.id }}', '{empresa_nombre}')">+{empresa_nombre}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_whatsapp_{{ alerta.id }}', '{salario_minimo}')">+{salario_minimo}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_whatsapp_{{ alerta.id }}', '{habilidades_requeridas}')">+{habilidades_requeridas}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_whatsapp_{{ alerta.id }}', '{monto_comision}')">+{monto_comision}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_whatsapp_{{ alerta.id }}', '{monto_devolucion}')">+{monto_devolucion}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_whatsapp_{{ alerta.id }}', '{candidato_nombre}')">+{candidato_nombre}</button>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.3rem; font-size: 0.65rem; background: var(--card-bg, #fff); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 4px; cursor: pointer; display: inline-flex;" onclick="insertVariable('plantilla_whatsapp_{{ alerta.id }}', '{puesto}')">+{puesto}</button>
+                        </div>
+                        <textarea name="plantilla_whatsapp_{{ alerta.id }}" id="plantilla_whatsapp_{{ alerta.id }}" rows="6" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-family: inherit; font-size: 0.85rem; line-height: 1.5; resize: vertical;">{{ alerta.plantilla_whatsapp }}</textarea>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="card" style="padding: 3rem; text-align: center;">
+                <i data-lucide="bell-off" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.4; color: var(--text-dim);"></i>
+                <h3 style="margin: 0; color: var(--text-main);">No hay alertas configuradas</h3>
+                <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 0.5rem;">Crea una alerta inicial haciendo clic en "Nueva Alerta".</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if alertas %}
+        <div class="card" style="margin-top: 1.5rem; padding: 1rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="submit" class="btn btn-primary" style="padding: 0.6rem 2rem;">
+                <i data-lucide="save" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 0.4rem;"></i>
+                Guardar Todos los Cambios
+            </button>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Modal para Crear Nueva Alerta -->
+<div id="modalNuevaAlerta" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="card" style="width: 100%; max-width: 550px; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); position: relative;">
+        <button onclick="cerrarModalNuevaAlerta()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; color: var(--text-dim); cursor: pointer;">&times;</button>
+        
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-top: 0; margin-bottom: 0.5rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="bell" style="color: var(--primary);"></i> Agregar Nueva Configuración de Alerta
+        </h2>
+        <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 1.5rem;">Define una nueva regla y sus plantillas de envío.</p>
+        
+        <form method="POST" action="{% url 'gestionar_alertas' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+                <input type="hidden" name="nombre" id="modal_hidden_nombre" value="">
+                <input type="hidden" name="evento_codigo" id="modal_hidden_evento_codigo" value="">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-dim); display: block; margin-bottom: 0.25rem;">Módulo / Entidad</label>
+                        <select id="modal_select_entidad" onchange="actualizarOpcionesAlerta()" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem;">
+                            <option value="">-- Selecciona --</option>
+                            <option value="busqueda">Búsquedas</option>
+                            <option value="comision">Comisiones</option>
+                            <option value="postulante">Postulantes</option>
+                            <option value="postulacion">Postulaciones</option>
+                            <option value="empresa">Empresas</option>
+                            <option value="selector">Selectores</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-dim); display: block; margin-bottom: 0.25rem;">Tipo de Evento</label>
+                        <select id="modal_select_evento" onchange="actualizarOpcionesAlerta()" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem;">
+                            <option value="">-- Selecciona --</option>
+                            <option value="nueva">Nueva Creación</option>
+                            <option value="estado">Cambio de Estado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="modal_div_estado" style="display: none;">
+                    <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-dim); display: block; margin-bottom: 0.25rem;">Estado Específico</label>
+                    <select id="modal_select_estado" onchange="actualizarValoresOcultos()" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem;">
+                        <option value="">-- Selecciona un Estado --</option>
+                        <!-- Opciones dinámicas inyectadas vía JS -->
+                    </select>
+                </div>
+                
+                <div id="modal_preview_alerta" style="display: none; padding: 0.5rem; background: var(--bg-main); border-radius: 6px; border: 1px dashed var(--border-light); font-size: 0.8rem; color: var(--text-dim);">
+                    <strong>Resumen:</strong> Se creará una alerta llamada <span id="preview_nombre" style="color: var(--primary); font-weight: 600;"></span> (Código: <span id="preview_codigo" style="font-family: monospace;"></span>)
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-main); cursor: pointer;">
+                        <input type="checkbox" name="activar_email" checked style="width: 16px; height: 16px;"> Activar Email
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-main); cursor: pointer;">
+                        <input type="checkbox" name="activar_whatsapp" checked style="width: 16px; height: 16px;"> Activar WhatsApp
+                    </label>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-dim); display: block; margin-bottom: 0.25rem;">¿Quiénes reciben la notificación?</label>
+                    <select name="destinatarios" id="modal_select_destinatarios" onchange="toggleModalCampos()" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem;">
+                        <option value="asignados">Solo selectores asignados a la búsqueda</option>
+                        <option value="activos">Todos los selectores activos</option>
+                        <option value="ambos">Ambos (Asignados y Activos)</option>
+                        <option value="cierre">Solo el selector de Cierre (comisión)</option>
+                        <option value="sourcing">Solo el selector de Sourcing (comisión)</option>
+                        <option value="ambos_comision">Ambos de la comisión (Sourcing y Cierre)</option>
+                        <option value="grupo">Un grupo específico de selectores</option>
+                        <option value="especifico">Un selector individual específico</option>
+                    </select>
+                </div>
+
+                <!-- Campo Grupo (Modal, Condicional) -->
+                <div id="modal_campo_grupo" style="display: none; flex-direction: column; gap: 0.4rem;">
+                    <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-dim);">Selecciona el Grupo:</label>
+                    <select name="destinatario_grupo" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem;">
+                        <option value="">-- Elige un Grupo --</option>
+                        {% for g in grupos %}
+                            <option value="{{ g.id }}">{{ g.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Campo Selector Específico (Modal, Condicional) -->
+                <div id="modal_campo_especifico" style="display: none; flex-direction: column; gap: 0.4rem;">
+                    <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-dim);">Selecciona el Selector:</label>
+                    <select name="destinatario_especifico" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem;">
+                        <option value="">-- Elige un Selector --</option>
+                        {% for s in selectores %}
+                            <option value="{{ s.id }}">{{ s.nombre }} {{ s.apellido }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-dim); display: block; margin-bottom: 0.25rem;">Plantilla Inicial de Email</label>
+                    <textarea name="plantilla_email" id="modal_plantilla_email" rows="3" placeholder="Hola {nombre_selector}, ..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem; resize: none;"></textarea>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-dim); display: block; margin-bottom: 0.25rem;">Plantilla Inicial de WhatsApp</label>
+                    <textarea name="plantilla_whatsapp" id="modal_plantilla_whatsapp" rows="2" placeholder="Hola {nombre_selector}, ..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem; resize: none;"></textarea>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" onclick="cerrarModalNuevaAlerta()" class="btn btn-secondary" style="padding: 0.5rem 1.5rem;">Cancelar</button>
+                <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; background-color: var(--success); border-color: var(--success);">Crear Alerta</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function abrirModalNuevaAlerta() {
+    document.getElementById('modalNuevaAlerta').style.display = 'flex';
+}
+
+function cerrarModalNuevaAlerta() {
+    document.getElementById('modalNuevaAlerta').style.display = 'none';
+}
+
+function toggleDestinatarioCampos(alertaId) {
+    const select = document.getElementById('select_destinatarios_' + alertaId);
+    const campoGrupo = document.getElementById('campo_grupo_' + alertaId);
+    const campoEspecifico = document.getElementById('campo_especifico_' + alertaId);
+    
+    if (select.value === 'grupo') {
+        campoGrupo.style.display = 'flex';
+        campoEspecifico.style.display = 'none';
+    } else if (select.value === 'especifico') {
+        campoGrupo.style.display = 'none';
+        campoEspecifico.style.display = 'flex';
+    } else {
+        campoGrupo.style.display = 'none';
+        campoEspecifico.style.display = 'none';
+    }
+}
+
+function toggleModalCampos() {
+    const select = document.getElementById('modal_select_destinatarios');
+    const campoGrupo = document.getElementById('modal_campo_grupo');
+    const campoEspecifico = document.getElementById('modal_campo_specifico') || document.getElementById('modal_campo_especifico');
+    
+    if (select.value === 'grupo') {
+        campoGrupo.style.display = 'flex';
+        campoEspecifico.style.display = 'none';
+    } else if (select.value === 'especifico') {
+        campoGrupo.style.display = 'none';
+        campoEspecifico.style.display = 'flex';
+    } else {
+        campoGrupo.style.display = 'none';
+        campoEspecifico.style.display = 'none';
+    }
+}
+
+function insertVariable(textareaId, variable) {
+    const textarea = document.getElementById(textareaId);
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+    
+    textarea.value = before + variable + after;
+    textarea.focus();
+    textarea.selectionStart = textarea.selectionEnd = start + variable.length;
+}
+
+// Datos pasados desde el servidor
+const estadosData = {
+    busqueda: [
+        {% for estado in estados_busqueda %}
+            { codigo: "{{ estado.codigo|default:estado.nombre|lower|slugify }}", nombre: "{{ estado.nombre }}" }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    comision: [
+        {% for estado in estados_comision %}
+            { codigo: "{{ estado.codigo }}", nombre: "{{ estado.nombre }}" }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    postulante: [
+        {% for estado in estados_postulante %}
+            { codigo: "estado_{{ estado.id }}", nombre: "{{ estado.nombre }}" }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    postulacion: [
+        {% for k, v in estados_postulacion %}
+            { codigo: "{{ k }}", nombre: "{{ v }}" }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    empresa: [],
+    selector: [
+        { codigo: "activo", nombre: "Activo" },
+        { codigo: "inactivo", nombre: "Inactivo" }
+    ]
+};
+
+function actualizarOpcionesAlerta() {
+    const entidad = document.getElementById('modal_select_entidad').value;
+    const evento = document.getElementById('modal_select_evento').value;
+    const divEstado = document.getElementById('modal_div_estado');
+    const selectEstado = document.getElementById('modal_select_estado');
+    
+    // Resetear opciones de estado
+    selectEstado.innerHTML = '<option value="">-- Selecciona un Estado --</option>';
+    
+    if (evento === 'estado' && entidad) {
+        divEstado.style.display = 'block';
+        const opciones = estadosData[entidad] || [];
+        opciones.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.codigo;
+            option.text = opt.nombre;
+            selectEstado.appendChild(option);
+        });
+    } else {
+        divEstado.style.display = 'none';
+    }
+    
+    actualizarValoresOcultos();
+}
+
+function actualizarValoresOcultos() {
+    const entidadSelect = document.getElementById('modal_select_entidad');
+    const eventoSelect = document.getElementById('modal_select_evento');
+    const estadoSelect = document.getElementById('modal_select_estado');
+    
+    const entidadVal = entidadSelect.value;
+    const entidadText = entidadSelect.options[entidadSelect.selectedIndex]?.text || '';
+    
+    const eventoVal = eventoSelect.value;
+    const estadoVal = estadoSelect.value;
+    const estadoText = estadoSelect.options[estadoSelect.selectedIndex]?.text || '';
+    
+    let nombre = "";
+    let codigo = "";
+    
+    if (entidadVal && eventoVal) {
+        if (eventoVal === 'nueva') {
+            nombre = "Nuevo(a) " + entidadText;
+            codigo = entidadVal + "_nueva";
+            
+            // Sugerir plantillas
+            sugerirPlantillas("nueva", entidadVal, "", entidadText);
+        } else if (eventoVal === 'estado' && estadoVal) {
+            nombre = entidadText + " - " + estadoText;
+            codigo = entidadVal + "_" + estadoVal;
+            
+            // Sugerir plantillas
+            sugerirPlantillas("estado", entidadVal, estadoText, entidadText);
+        }
+    }
+    
+    document.getElementById('modal_hidden_nombre').value = nombre;
+    document.getElementById('modal_hidden_evento_codigo').value = codigo;
+    
+    const preview = document.getElementById('modal_preview_alerta');
+    if (nombre && codigo) {
+        document.getElementById('preview_nombre').innerText = nombre;
+        document.getElementById('preview_codigo').innerText = codigo;
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+function sugerirPlantillas(tipo, entidad, estadoTexto, entidadTexto) {
+    let email = "";
+    let wa = "";
+    
+    if (tipo === 'nueva') {
+        email = `Hola {nombre_selector},\n\nSe ha registrado un(a) nuevo(a) ${entidadTexto.toLowerCase()} en el sistema.\nPor favor, revisa la plataforma para más detalles.`;
+        wa = `🔔 *Nuevo(a) ${entidadTexto}*\n\nHola {nombre_selector}, te informamos que se ha registrado un(a) nuevo(a) ${entidadTexto.toLowerCase()} en el sistema.`;
+    } else {
+        email = `Hola {nombre_selector},\n\nEl estado de un(a) ${entidadTexto.toLowerCase()} ha cambiado a: ${estadoTexto}.\n\nRevisa la plataforma para continuar con la gestión.`;
+        wa = `🔔 *Actualización de Estado*\n\nHola {nombre_selector}, un(a) ${entidadTexto.toLowerCase()} ha cambiado a estado: *${estadoTexto}*.`;
+    }
+    
+    const areaEmail = document.getElementById('modal_plantilla_email');
+    const areaWa = document.getElementById('modal_plantilla_whatsapp');
+    
+    if (areaEmail && areaEmail.value.trim() === "") {
+        areaEmail.value = email;
+    }
+    if (areaWa && areaWa.value.trim() === "") {
+        areaWa.value = wa;
+    }
+}
+</script>
+
+{% endblock %}

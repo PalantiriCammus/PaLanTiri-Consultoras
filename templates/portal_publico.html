@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Búsquedas Activas - {{ selector.nombre }} {{ selector.apellido }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #0a84ff;
+            --primary-hover: #0070e0;
+            --bg-main: #f5f5f7;
+            --bg-card: #ffffff;
+            --text-main: #1d1d1f;
+            --text-dim: #86868b;
+            --border: rgba(0,0,0,0.1);
+        }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            background: var(--bg-card);
+            padding: 3rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #5e5ce6);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0 auto 1.5rem;
+        }
+        .selector-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem;
+        }
+        .selector-title {
+            color: var(--text-dim);
+            font-size: 1rem;
+            margin: 0;
+        }
+        .job-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .job-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .job-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0 0 0.25rem;
+            color: var(--primary);
+        }
+        .job-company {
+            font-weight: 500;
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+        .job-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--bg-main);
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+        }
+        .btn-apply {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: opacity 0.2s;
+            margin-top: 1rem;
+        }
+        .btn-apply:hover {
+            opacity: 0.9;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-dim);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    {% if messages %}
+        {% for message in messages %}
+            <div style="padding: 1rem; border-radius: 8px; margin-bottom: 2rem; text-align: center; font-weight: 500;
+                {% if message.tags == 'success' %}background: #e8f5e9; color: #2e7d32;{% else %}background: #ffebee; color: #c62828;{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="header">
+        <div class="avatar">
+            {{ selector.nombre|first }}{{ selector.apellido|first }}
+        </div>
+        <h1 class="selector-name">{{ selector.nombre }} {{ selector.apellido }}</h1>
+        <p class="selector-title">Talent Acquisition Specialist</p>
+        <div style="margin-top: 1rem; color: var(--text-dim); font-size: 0.9rem;">
+            Mira las búsquedas activas que estoy gestionando y postúlate directamente.
+        </div>
+    </div>
+
+    <h2 style="font-size: 1.2rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i data-lucide="briefcase"></i> Oportunidades Abiertas
+    </h2>
+
+    {% for busqueda in busquedas %}
+    <div class="job-card">
+        <div class="job-header">
+            <div>
+                <h3 class="job-title">{{ busqueda.titulo_puesto }}</h3>
+                <div class="job-company">{{ busqueda.empresa.nombre }}</div>
+            </div>
+        </div>
+        
+        {% if busqueda.descripcion %}
+        <p style="font-size: 0.9rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 1rem;">
+            {{ busqueda.descripcion|truncatechars:150 }}
+        </p>
+        {% endif %}
+
+        <div class="job-details">
+            <div class="detail-item">
+                <i data-lucide="map-pin" style="width: 14px;"></i>
+                {% if busqueda.es_remoto %}Remoto{% else %}{{ busqueda.ubicacion_puesto }}{% endif %}
+            </div>
+            {% if busqueda.jornada_laboral %}
+            <div class="detail-item">
+                <i data-lucide="clock" style="width: 14px;"></i>
+                {{ busqueda.jornada_laboral }}
+            </div>
+            {% endif %}
+            <div class="detail-item">
+                <i data-lucide="trending-up" style="width: 14px;"></i>
+                Nivel: {{ busqueda.nivel|title }}
+            </div>
+        </div>
+
+        <button class="btn-apply" onclick="openApplyModal('{{ busqueda.id }}', '{{ busqueda.titulo_puesto|escapejs }}')">
+            <i data-lucide="send" style="width: 16px;"></i> Postularme
+        </button>
+    </div>
+    {% empty %}
+    <div style="text-align: center; padding: 3rem; background: var(--bg-card); border-radius: 16px; border: 1px dashed var(--border);">
+        <i data-lucide="inbox" style="width: 48px; height: 48px; color: var(--text-dim); margin-bottom: 1rem;"></i>
+        <h3 style="margin: 0 0 0.5rem;">No hay búsquedas activas</h3>
+        <p style="color: var(--text-dim); margin: 0;">Actualmente no tengo búsquedas abiertas. Vuelve pronto.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal de Postulación -->
+<div class="modal" id="applyModal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="closeApplyModal()">
+            <i data-lucide="x"></i>
+        </button>
+        <h2 style="margin-top: 0; margin-bottom: 0.5rem;" id="modalJobTitle">Postulación</h2>
+        <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 1.5rem;">Completa tus datos y adjunta tu CV.</p>
+
+        <form method="POST" enctype="multipart/form-data" id="applyForm">
+            {% csrf_token %}
+            <input type="hidden" name="busqueda_id" id="modalJobId">
+            
+            <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" name="nombre" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Apellido</label>
+                <input type="text" name="apellido" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Teléfono (WhatsApp)</label>
+                <input type="text" name="telefono" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>LinkedIn URL (Opcional)</label>
+                <input type="url" name="linkedin_url" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>CV (PDF o Word)</label>
+                <input type="file" name="cv_archivo" class="form-control" accept=".pdf,.doc,.docx" required>
+            </div>
+
+            <button type="submit" class="btn-apply" style="width: 100%; justify-content: center; margin-top: 1rem; padding: 0.8rem;">
+                Enviar Postulación
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+
+    function openApplyModal(jobId, jobTitle) {
+        document.getElementById('modalJobId').value = jobId;
+        document.getElementById('modalJobTitle').textContent = 'Postularse a: ' + jobTitle;
+        document.getElementById('applyModal').classList.add('active');
+    }
+
+    function closeApplyModal() {
+        document.getElementById('applyModal').classList.remove('active');
+        document.getElementById('applyForm').reset();
+    }
+
+    // Cerrar modal al clickear afuera
+    document.getElementById('applyModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeApplyModal();
+        }
+    });
+</script>
+
+</body>
+</html>

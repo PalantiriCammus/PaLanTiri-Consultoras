@@ -1,0 +1,94 @@
+<!-- templates/informe_entrevista.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 750px; margin: 0 auto;">
+    <div class="page-header" style="margin-bottom: 2rem;">
+        <h1 class="page-title">Informe de Entrevista</h1>
+        <p class="page-subtitle">Completa la ficha de evaluación técnica y comentarios del selector.</p>
+    </div>
+
+    <!-- Candidate Header Card -->
+    <div class="card" style="padding: 1.5rem; margin-bottom: 1.5rem; border-left: 4px solid var(--primary); display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div>
+            <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-dim); font-weight: 600; letter-spacing: 0.5px;">Candidato</div>
+            <div style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-top: 0.2rem;">
+                {{ postulacion.postulante.nombre_completo }}
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0.15rem;">{{ postulacion.postulante.email }} | {{ postulacion.postulante.telefono }}</div>
+        </div>
+        <div>
+            <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-dim); font-weight: 600; letter-spacing: 0.5px;">Búsqueda Destino</div>
+            <div style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-top: 0.2rem;">
+                {{ postulacion.perfil_busqueda.titulo_puesto }}
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0.15rem;">Empresa: {{ postulacion.perfil_busqueda.empresa.nombre }}</div>
+        </div>
+    </div>
+
+    <!-- Main Report Form -->
+    <div class="card" style="padding: 2rem;">
+        <form method="POST" action="">
+            {% csrf_token %}
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Fecha de Entrevista *</label>
+                    <input type="date" name="fecha_entrevista" class="form-control" required 
+                           value="{% if informe %}{{ informe.fecha_entrevista|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Empresa y Puesto Actual</label>
+                    <input type="text" name="empresa_puesto_actual" class="form-control" 
+                           placeholder="Ej: Globant - QA Analyst Ssr" 
+                           value="{{ informe.empresa_puesto_actual|default:'' }}">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Situación Laboral Actual</label>
+                    <input type="text" name="situacion_actual" class="form-control" 
+                           placeholder="Ej: Trabajando, Desempleado, En búsqueda activa" 
+                           value="{{ informe.situacion_actual|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sueldo Bruto Pretendido ($ ARS)</label>
+                    <input type="number" step="0.01" name="sueldo_bruto_pretendido" class="form-control" 
+                           placeholder="Ej: 950000" 
+                           value="{{ informe.sueldo_bruto_pretendido|floatformat:'0'|default:'' }}">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Experiencia Detallada</label>
+                <div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.4rem;">Indica años de experiencia, tecnologías dominadas y herramientas usadas.</div>
+                <textarea name="experiencia_detalle" class="form-control" style="height: 110px;" 
+                          placeholder="Ej: 4 años de experiencia en desarrollo web. Backend con Python/Django, frontend con React. Bases de datos PostgreSQL...">{{ informe.experiencia_detalle|default:'' }}</textarea>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Formación Académica y Certificaciones</label>
+                <div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.4rem;">Menciona títulos universitarios, en curso, cursos o certificaciones clave.</div>
+                <textarea name="formacion_academica" class="form-control" style="height: 90px;" 
+                          placeholder="Ej: Analista de Sistemas (UAI, en curso). Certificación AWS Cloud Practitioner...">{{ informe.formacion_academica|default:'' }}</textarea>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Informe / Comentarios del Selector</label>
+                <div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.4rem;">Punto de vista del selector, fit cultural, perfil conductual y observaciones.</div>
+                <textarea name="comentarios_selector" class="form-control" style="height: 120px;" 
+                          placeholder="Escribe tu punto de vista sobre el candidato...">{{ informe.comentarios_selector|default:'' }}</textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem;">
+                <a href="{% url 'postulantes' %}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="save" style="width: 16px;"></i>
+                    Guardar Informe
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

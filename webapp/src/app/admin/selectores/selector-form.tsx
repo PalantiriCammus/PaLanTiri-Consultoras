@@ -17,10 +17,10 @@ type Selector = {
   estado?: string;
   cuit?: string;
   dni?: string | null;
-  banco?: string;
-  numero_cuenta?: string;
-  cbu?: string;
-  alias_cvu?: string;
+  entidad_pago?: string;
+  datos_cuenta?: string;
+  cbu_cvu_alias?: string;
+  usuario_billetera?: string;
   comision_porcentaje_defecto?: number;
   profile_id?: string | null;
 };
@@ -38,12 +38,14 @@ function Campo({
   defaultValue,
   type = "text",
   required,
+  hint,
 }: {
   label: string;
   name: string;
   defaultValue?: string | number | null;
   type?: string;
   required?: boolean;
+  hint?: string;
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
@@ -55,6 +57,7 @@ function Campo({
         required={required}
         className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
       />
+      {hint && <span className="text-xs text-slate-500">{hint}</span>}
     </label>
   );
 }
@@ -92,7 +95,13 @@ export async function SelectorForm({ selector, usuarios = [] }: { selector?: Sel
           <Campo label="Email" name="email" type="email" defaultValue={selector?.email} required />
           <Campo label="Teléfono" name="telefono" defaultValue={selector?.telefono} />
           <Campo label="DNI" name="dni" defaultValue={selector?.dni} />
-          <Campo label="CUIT" name="cuit" defaultValue={selector?.cuit} required />
+          <Campo
+            label="CUIT"
+            name="cuit"
+            defaultValue={selector?.cuit}
+            required
+            hint="Para extranjeros, poner 99 antes del ID y 9 al final."
+          />
         </div>
       </section>
 
@@ -158,13 +167,13 @@ export async function SelectorForm({ selector, usuarios = [] }: { selector?: Sel
 
       <section>
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
-          Datos bancarios y comisión
+          Datos para el pago de comisión
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Campo label="Banco" name="banco" defaultValue={selector?.banco} />
-          <Campo label="Número de cuenta" name="numero_cuenta" defaultValue={selector?.numero_cuenta} />
-          <Campo label="CBU" name="cbu" defaultValue={selector?.cbu} />
-          <Campo label="Alias CVU" name="alias_cvu" defaultValue={selector?.alias_cvu} />
+          <Campo label="Entidad de pago" name="entidad_pago" defaultValue={selector?.entidad_pago} />
+          <Campo label="Datos de cuenta" name="datos_cuenta" defaultValue={selector?.datos_cuenta} />
+          <Campo label="CBU/CVU/ALIAS" name="cbu_cvu_alias" defaultValue={selector?.cbu_cvu_alias} />
+          <Campo label="Usuario billetera virtual" name="usuario_billetera" defaultValue={selector?.usuario_billetera} />
           <Campo
             label="Comisión por defecto (%)"
             name="comision_porcentaje_defecto"

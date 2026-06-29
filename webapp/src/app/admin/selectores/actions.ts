@@ -33,10 +33,10 @@ export async function guardarSelector(formData: FormData) {
     estado: val(formData, "estado") || "activo",
     cuit: val(formData, "cuit"),
     dni: nullable(formData, "dni"),
-    banco: val(formData, "banco"),
-    numero_cuenta: val(formData, "numero_cuenta"),
-    cbu: val(formData, "cbu"),
-    alias_cvu: val(formData, "alias_cvu"),
+    entidad_pago: val(formData, "entidad_pago"),
+    datos_cuenta: val(formData, "datos_cuenta"),
+    cbu_cvu_alias: val(formData, "cbu_cvu_alias"),
+    usuario_billetera: val(formData, "usuario_billetera"),
     comision_porcentaje_defecto: Number(val(formData, "comision_porcentaje_defecto") || "50"),
   };
 

@@ -1,7 +1,7 @@
 -- ============================================================
 -- BUNDLE DE MIGRACIONES - Plataforma Palantiri
 -- Pegar TODO esto en Supabase -> SQL Editor -> RUN (una sola vez,
--- en una base NUEVA y vacia). Incluye migraciones 0001 a 0011.
+-- en una base NUEVA y vacia). Incluye migraciones 0001 a 0012.
 -- ============================================================
 
 -- >>>>>>>>>>>>>>>>>>>>>>  0001_schema.sql  <<<<<<<<<<<<<<<<<<<<<<
@@ -1819,3 +1819,50 @@ update public.postulaciones set estado = 'rechazado_postulante' where estado = '
 
 alter table public.perfiles_busqueda
   add column if not exists idiomas_requeridos text not null default '';
+
+
+-- >>>>>>>>>>>>>>>>>>>>>>  0012_renombrar_datos_pago.sql  <<<<<<<<<<<<<<<<<<<<<<
+-- ============================================================
+-- Migración 0012: Renombrar datos de pago de comisión del selector
+--   banco         -> entidad_pago
+--   numero_cuenta -> datos_cuenta
+--   cbu           -> cbu_cvu_alias   (además se ensancha a text)
+--   alias_cvu     -> usuario_billetera
+-- Idempotente.
+-- ============================================================
+
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'selectores'
+               and column_name = 'banco') then
+    alter table public.selectores rename column banco to entidad_pago;
+  end if;
+
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'selectores'
+               and column_name = 'numero_cuenta') then
+    alter table public.selectores rename column numero_cuenta to datos_cuenta;
+  end if;
+
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'selectores'
+               and column_name = 'cbu') then
+    alter table public.selectores rename column cbu to cbu_cvu_alias;
+  end if;
+
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'selectores'
+               and column_name = 'alias_cvu') then
+    alter table public.selectores rename column alias_cvu to usuario_billetera;
+  end if;
+end $$;
+
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'selectores'
+               and column_name = 'cbu_cvu_alias' and data_type <> 'text') then
+    alter table public.selectores alter column cbu_cvu_alias type text;
+  end if;
+end $$;
